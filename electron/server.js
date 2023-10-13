@@ -1,16 +1,35 @@
 const { ipcMain, globalShortcut } = require("electron");
 const fs = require("fs");
 const path = require("node:path");
-// const kb = require("node-key-sender");
-const { GlobalKeyboardListener } = require("@futpib/node-global-key-listener");
-const v = new GlobalKeyboardListener();
-
+const kb = require("node-key-sender");
+const robot = require("@jitsi/robotjs");
+// const ioHook = require('@spacek33z/iohook');
+const {uIOhook, UiohookKey} = require('uiohook-napi')
 const {Worker} = require('worker_threads');
 const worker = new Worker('./electron/worker-thread.js')
 
+// const cluster = require('cluster');
+
+// uIOhook.on('keydown', (e) => {
+//  console.log(e);
+// hold['SPACE']++
+// })
+// uIOhook.start()
+
+const { GlobalKeyboardListener } = require("@futpib/node-global-key-listener");
+const v = new GlobalKeyboardListener();
+
+// const app = require('./main')
+
 let macros;
-let hold_watch = {SPACE: 1}
-let hold_save = {SPACE: 0}
+let running = {};
+let holding = {};
+
+robot.setKeyboardDelay(10)
+worker.on('message', m => {
+	let temp = JSON.parse(m);
+	holding = {...holding, ...temp}
+})
 
 try {
   macros = JSON.parse(fs.readFileSync(path.join(__dirname, "../macros.json")));
@@ -18,25 +37,35 @@ try {
   console.log("no data");
 }
 
-v.addListener((e) => {
-  if (e.name == "MINUS") return worker.postMessage(JSON.stringify({type: 'clear'}));
-  if (e._raw.length > 30) return;
-	// console.log(e._raw);
-	if(!hold_watch[e.name]) return;
-	let state = e.state == 'DOWN' ? 1:0;
-	if(hold_save[e.name] != state) {
-		hold_save[e.name] = state;
-		// console.log('state change', new Date());
-		worker.postMessage(JSON.stringify({type: 'key', data: {SPACE: state}}))
-	}
-  // console.log(e.state == "DOWN" ? 'holding space' : 'let go of space');
-});
+// console.log(macros);
+
+async function Delay(secs) {
+  return new Promise((res) => setTimeout(() => res(""), secs));
+}
+
+async function runMacro(mac) {
+  // console.log('this is the mac', mac);
+  if (!mac) return console.log("bro wut");
+
+  if (running[mac.id]) {
+    console.log("was already running so stopped");
+    return (running[mac.id] = 0);
+  }
+ 
+  running[mac.id] = 1;
+  while (running[mac.id]) {
+		// if(holding['SPACE']) 
+    	robot.keyTap(mac.inputs[0].key);
+		
+		// console.log('holdign so running');
+    await Delay(100);
+  }
+}
 
 //#region BRO
 
 ipcMain.on("run", (e, pl) => {
-  // runMacro(JSON.parse(pl));
-	worker.postMessage(JSON.stringify({type: 'macro', pl: pl}));
+  runMacro(JSON.parse(pl));
 });
 
 ipcMain.on("halt", (e, pl) => {
@@ -55,28 +84,11 @@ ipcMain.on("load", (e, payload) => {
 });
 
 
+export function clear() {
+  running = {};
+	holding = {};
+	// ipcMain.
+}
 
 //#endregion
-
-/*#region JUNK
-
-worker.on('message', m => {
-	let temp = JSON.parse(m);
-	holding = {...holding, ...temp}
-})
-
-parentPort.on('message', m => {
-
-})
-		parentPort.postMessage(JSON.stringify({SPACE: state}))
-
-const cluster = require('cluster');
-
-uIOhook.on('keydown', (e) => {
- console.log(e);
-hold['SPACE']++
-})
-uIOhook.start()
-
-#endregion */
 
