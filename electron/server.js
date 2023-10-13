@@ -29,6 +29,7 @@ robot.setKeyboardDelay(10)
 worker.on('message', m => {
 	let temp = JSON.parse(m);
 	holding = {...holding, ...temp}
+	worker.postMessage('ok')
 })
 
 try {
@@ -55,11 +56,13 @@ async function runMacro(mac) {
   running[mac.id] = 1;
   while (running[mac.id]) {
 		// if(holding['SPACE']) 
-    	robot.keyTap(mac.inputs[0].key);
+			// worker.postMessage(mac.inputs[0].key)
+    	uIOhook.keyTap(65);
 		
 		// console.log('holdign so running');
-    await Delay(100);
+    await Delay(200);
   }
+	// ready = true.
 }
 
 //#region BRO
