@@ -17,24 +17,21 @@ parentPort.on('message', m => {
 v.addListener((e) => {
   if (e.name == "MINUS") return clear();
 	if(!ready) return;
+	if(e._raw.split(',')[3][0] == 0) return;
 	console.log(e._raw);
 	if(!hold_watch[e.name]) return;
   if (e._raw.length > 30) return;
-	// let state = e.state == 'DOWN' ? 1:0;
-	ups = e.state == 'DOWN' ? 0 : ups+1;
-	if(ups == 2) {
-		ready == false;
-		hold_save[e.name] = 0;
-		return  parentPort.postMessage(JSON.stringify({SPACE: 0}))
-	} 
-	let state = 1;
+
+	let state = e.state == 'DOWN' ? 1:0;
 	if(hold_save[e.name] != state) {
 		hold_save[e.name] = state
-		// console.log('state change', new Date());
+		console.log('state change', new Date());         
 		ready == false;
 
 		parentPort.postMessage(JSON.stringify({SPACE: state}))
 	}
+
+	
 
   // console.log(e.state == "DOWN" ? 'holding space' : 'let go of space');
  

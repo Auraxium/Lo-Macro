@@ -1,3 +1,4 @@
+import keymap from './key-map'
 const { ipcMain, globalShortcut } = require("electron");
 const fs = require("fs");
 const path = require("node:path");
@@ -15,6 +16,11 @@ const worker = new Worker('./electron/worker-thread.js')
 // hold['SPACE']++
 // })
 // uIOhook.start()
+// let map = {}
+// let a = Object.entries(UiohookKey).forEach(e => {
+// 	map[e[0].toLowerCase()] = e[1]
+// })
+// console.log(a);
 
 const { GlobalKeyboardListener } = require("@futpib/node-global-key-listener");
 const v = new GlobalKeyboardListener();
@@ -55,9 +61,9 @@ async function runMacro(mac) {
  
   running[mac.id] = 1;
   while (running[mac.id]) {
-		// if(holding['SPACE']) 
+		if(holding['SPACE']) 
 			// worker.postMessage(mac.inputs[0].key)
-    	uIOhook.keyTap(65);
+    	uIOhook.keyTap(keymap[mac.inputs[0].key]);
 		
 		// console.log('holdign so running');
     await Delay(200);
