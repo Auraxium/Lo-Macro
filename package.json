@@ -13,27 +13,10 @@
     "@jitsi/robotjs": "^0.6.13",
     "@spacek33z/iohook": "^0.10.2",
     "@tabler/icons-react": "^2.38.0",
-    "iohook": "^0.9.3",
-    "node-abi": "^3.50.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.16.0",
     "uiohook-napi": "^1.5.2"
-  },
-  "iohook": {
-    "targets": [
-      "node-111",
-      "electron-116"
-    ],
-    "platforms": [
-      "win32",
-      "darwin",
-      "linux"
-    ],
-    "arches": [
-      "x64",
-      "ia32"
-    ]
   },
   "devDependencies": {
     "@types/react": "^18.2.21",
@@ -47,7 +30,6 @@
     "eslint": "^8.48.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.3",
-    "node-key-sender": "^1.0.11",
     "postcss": "^8.4.31",
     "tailwindcss": "^3.3.3",
     "typescript": "^5.2.2",

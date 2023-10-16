@@ -1,1 +1,1 @@
-[{"type":"hold","name":"wd","key":"g","inputs":[{"key":"space","down":true}],"delay":200,"id":"xeth3uj"}]
+{"rxzuaha":{"type":"hold","inputs":[{"key":"space","down":true},{"key":"space","down":true},{"key":"space","down":true},{"key":"space","down":true}],"delay":200,"id":"rxzuaha","key":"SPACE","keycode":32,"name":"Spacey"},"eg8ks33":{"type":"toggle","name":"herwfews","key":"F","keycode":70,"inputs":[{"key":"f","down":true},{"key":"s","down":true},{"key":"d","down":true}],"delay":200,"id":"eg8ks33"}}

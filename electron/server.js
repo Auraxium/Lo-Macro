@@ -1,41 +1,27 @@
 import keymap from './key-map'
-const { ipcMain, globalShortcut } = require("electron");
+const { ipcMain } = require("electron");
 const fs = require("fs");
 const path = require("node:path");
-const kb = require("node-key-sender");
 const robot = require("@jitsi/robotjs");
-// const ioHook = require('@spacek33z/iohook');
-const {uIOhook, UiohookKey} = require('uiohook-napi')
+const {uIOhook} = require('uiohook-napi')
 const {Worker} = require('worker_threads');
 const worker = new Worker('./electron/worker-thread.js')
-
 // const cluster = require('cluster');
-
-// uIOhook.on('keydown', (e) => {
-//  console.log(e);
-// hold['SPACE']++
-// })
-// uIOhook.start()
-// let map = {}
-// let a = Object.entries(UiohookKey).forEach(e => {
-// 	map[e[0].toLowerCase()] = e[1]
-// })
-// console.log(a);
 
 const { GlobalKeyboardListener } = require("@futpib/node-global-key-listener");
 const v = new GlobalKeyboardListener();
 
-// const app = require('./main')
-
-let macros;
+let macros = {};
 let running = {};
 let holding = {};
+let running_save = false;
 
 robot.setKeyboardDelay(10)
 worker.on('message', m => {
-	let temp = JSON.parse(m);
-	holding = {...holding, ...temp}
-	worker.postMessage('ok')
+	if(m == 'clear') return clear()
+	let temp = Object.entries(JSON.parse(m))[0];
+	holding[temp[0]] = temp[1];
+	// worker.postMessage('ok')
 })
 
 try {
@@ -58,17 +44,15 @@ async function runMacro(mac) {
     console.log("was already running so stopped");
     return (running[mac.id] = 0);
   }
- 
+
+	let key = mac.keycode//mac.key.toUpperCase()
+	worker.postMessage(key)
   running[mac.id] = 1;
   while (running[mac.id]) {
-		if(holding['SPACE']) 
-			// worker.postMessage(mac.inputs[0].key)
+		if(holding[key]) 
     	uIOhook.keyTap(keymap[mac.inputs[0].key]);
-		
-		// console.log('holdign so running');
-    await Delay(200);
+    await Delay(50);
   }
-	// ready = true.
 }
 
 //#region BRO
@@ -94,8 +78,13 @@ ipcMain.on("load", (e, payload) => {
 
 
 export function clear() {
-  running = {};
 	holding = {};
+	// if(running_save) {
+	// 	running = {...running_save}
+	// 	return running_save = false;
+	// }
+	// running_save = {...running}
+  running = {};
 	// ipcMain.
 }
 
