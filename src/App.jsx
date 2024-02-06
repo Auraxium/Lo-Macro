@@ -1,0 +1,31 @@
+import { useState, useEffect, useRef } from 'react'
+import {
+	IconArrowLeft, IconReload, IconToggleRight, IconArrowNarrowRight,
+	IconArrowBigDownLine, IconArrowUp, IconArrowDown, IconSquareRoundedPlus,
+	IconTrash, IconPencil,
+} from '@tabler/icons-react';
+import Create from './Create'
+import Home from './home'
+
+window.macros_bc = {};
+let g = {}
+window.g = g;
+window.send = electron.ipcRenderer.send;
+
+// window.addEventListener('beforeunload', e => send('save', JSON.stringify(macros_bc)))
+
+function App() {
+	const [view, setView] = useState(<Home />)
+
+	useEffect(() => {
+		window.setView = setView;
+	}, [])
+
+	return (
+		<div className="center h-[100svh] w-full overflow-hidden">
+			<div className="border w-[800px] h-[80%]">{view}</div>
+		</div>
+	)
+}
+
+export default App
