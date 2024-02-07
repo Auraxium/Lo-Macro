@@ -18,9 +18,11 @@ LRESULT CALLBACK RawInputProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		UINT size = sizeof(RAWINPUT);
 		GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, &raw, &size, sizeof(RAWINPUTHEADER));
 
+		string result;
+
 		if (rawHeader.dwType == RIM_TYPEKEYBOARD)
 		{
-			string result;
+			
 			result.append(to_string(raw.data.keyboard.VKey)).append(",").append(to_string(raw.data.keyboard.Flags)).append(",");
 			// .append(std::to_string(raw.data.keyboard.MakeCode)).append(",")
 			// .append(std::to_string(raw.data.keyboard.Reserved)).append(",")
@@ -31,10 +33,16 @@ LRESULT CALLBACK RawInputProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		}
 		else if (rawHeader.dwType == RIM_TYPEMOUSE)
 		{
-			if (raw.data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN)
-			{
-				// std::cout << "Left mouse button is pressed!" << std::endl;
-				// std::cout << "Device Handle: " << rawHeader.hDevice << std::endl;
+			if(raw.data.mouse.ulButtons > 0 && raw.data.mouse.ulButtons < 3 ) {
+				result.append(to_string(raw.data.mouse.usFlags)).append(",")
+				.append(to_string(raw.data.mouse.ulButtons-1)).append(",");
+				// .append(to_string(raw.data.mouse.usButtonFlags)).append(",")
+				// .append(to_string(raw.data.mouse.usButtonData)).append(",")
+				// .append(to_string(raw.data.mouse.ulRawButtons)).append(",")
+				// .append(to_string(raw.data.mouse.lLastX)).append(",")
+				// .append(to_string(raw.data.mouse.lLastY)).append(",")
+
+				cout << result << rawHeader.hDevice << endl;
 			}
 		}
 	}

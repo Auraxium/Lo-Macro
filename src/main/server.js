@@ -33,7 +33,7 @@ worker.on("message", (m) => {
   if (m == "clear") return clear();
   let [key, state] = Object.entries(JSON.parse(m))[0];
 	// console.log('this the key ', key, state);
-	if(bind[key]) {
+	if(bind[key] > -1) {
 		return state ? keyDown(bind[key]) : keyUp(bind[key]);
 	}
   holding[key] = state;
@@ -46,7 +46,7 @@ let types = {
         await Delay(100);
         continue;
       }
-      if (holding[mac.keycode]) keyTap(keymap[mac.inputs[0].key]);
+      if (holding[mac.keycode]) await keyTap(keymap[mac.inputs[0].key]);
       await Delay(100);
     }
   },
@@ -75,27 +75,25 @@ async function Delay(secs) {
   return new Promise((res) => setTimeout(() => res(""), secs));
 }
 
-function keyTap(key) {
-  return key == 1 ? robot.mouseClick() : uIOhook.keyTap(key);
+async function keyTap(key) {
+	// keyDown(key);
+	// await Delay(50);
+	// keyUp(key);
+	return key ? uIOhook.keyTap(key) : robot.mouseClick();
 }
 
-function keyDown(key) {
-  return key == 1 ? robot.mouseToggle("down") : uIOhook.keyToggle(key, "down");
+ function keyDown(key) {
+  return key ? uIOhook.keyToggle(key, "down") : robot.mouseToggle("down");
 }
 
-function keyUp(key) {
-  return key == 1 ? robot.mouseToggle("up") : uIOhook.keyToggle(key, "up");
+ function keyUp(key) {
+  return key ? uIOhook.keyToggle(key, "up") : robot.mouseToggle("up");
 }
 
 async function test() {
 	while(true) {
 		await Delay(2000)
 		mouseTap()
-		// robot.mouseToggle('down')
-		// console.log('down');
-		// await Delay(2000)
-		// robot.mouseToggle('up')
-		// console.log('up');
 	}
 }
 
@@ -124,6 +122,11 @@ ipcMain.on("load", (e, payload) => {
   // console.log(macrdos);
   e.reply("load", JSON.stringify(macros));
 });
+
+ipcMain.on('running', (e, payload) => {
+	// console.log(running);
+	e.reply('running', JSON.stringify(running))
+}) 
 
 export function clear() {
   paused = !paused;

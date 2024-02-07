@@ -19,7 +19,7 @@ childProcess.stdout.on('data', (data) => {
 	let key = +e[0];
 	let state = +e[1] ? 0:1;
 	let device = e[2][1] == 'x';
-	if (key == 189 && state == 1) return parentPort.postMessage('clear'); // pressing '-' clears all running macros 
+	if (key == 189 && state) return parentPort.postMessage('clear'); // pressing '-' clears all running macros 
 	if(!device) return; // bot press - ignore
 	if(!hold_watch[key]) return; // key not important - ignore
 	if(hold_save[key] != state) {

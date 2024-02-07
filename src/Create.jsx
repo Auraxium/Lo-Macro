@@ -68,6 +68,8 @@ function Create({edit}) {
 		window.addEventListener('keyup', keyUp);
 		window.addEventListener('mousedown', clickDown)
 
+		console.log('is create duping??')
+
 		return () => {
 			window.removeEventListener('keydown', keyDown);
 			window.removeEventListener('keyup', keyUp);
@@ -104,7 +106,7 @@ function Create({edit}) {
 								e.target.style.fontSize = `${11}px`;
 								e.target.value = key;
 								form.key = 'lc';
-								form.keycode = 1;
+								form.keycode = 0;
 							}}
 							onKeyDown={e => {
 								e.preventDefault();

@@ -6,8 +6,22 @@ import {
 } from '@tabler/icons-react';
 import Create from './Create'
 
+let running = {}
+electron.ipcRenderer.on('load', (e, pl) => {
+	macros_bc = JSON.parse(pl);
+	setMacros({ ...macros_bc });
+})
+
+electron.ipcRenderer.on('running', (e, pl) => {
+	running = JSON.parse(pl);
+	// console.log(running);
+	setMacros({ ...macros_bc });
+})
+
 const Macro = ({ macro }) => {
-	const [active, setActive] = useState(false)
+	let [active, setActive] = useState(running[macro.id])
+	running[macro.id] = active;
+	// active = running[macro.id];
 
 	return (
 		<div className={` ${!active && '!bg-neutral-800 hover:!bg-neutral-700 '} flex px-[20px] border-b border-neutral-700 text-[25px] h-[75px]`} onClick={e => {
@@ -61,16 +75,16 @@ const Macro = ({ macro }) => {
 }
 
 export default function Home() {
-	// let nav = useNavigate()
 	const [macros, setMacros] = useState(macros_bc);
+	console.log('am i looping')
 
 	useEffect(() => {
 		window.setMacros = setMacros;
+		send('running')
 		if (Object.keys(macros).length) return;
 		send('load')
 
 		electron.ipcRenderer.on('load', (e, pl) => {
-			// console.log(pl);
 			macros_bc = JSON.parse(pl);
 			setMacros({ ...macros_bc });
 		})
@@ -86,3 +100,10 @@ export default function Home() {
 		</>
 	)
 }
+
+// document.addEventListener('mouseover', e => {
+// 	if(!e.target.classList.includes('mac')) return;
+// 	if(e.target.classList.includes('active')) {
+// 		e.target.
+// 	}
+// })

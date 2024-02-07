@@ -22,8 +22,8 @@ function App() {
 	}, [])
 
 	return (
-		<div className="center h-[100svh] w-full overflow-hidden">
-			<div className="border w-[800px] h-[80%]">{view}</div>
+		<div className="center h-[100svh] w-full">
+			<div className="border w-[800px] h-[80%] ">{view}</div>
 		</div>
 	)
 }
