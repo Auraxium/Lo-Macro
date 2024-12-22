@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { IconArrowNarrowRight, IconReload, IconArrowBigDownLine, IconToggleRight, IconArrowDown, IconArrowUp, IconCopy, IconX } from '@tabler/icons-react'
+import { IconArrowNarrowRight, IconReload, IconArrowBigDownLine, IconToggleRight, IconArrowDown, IconArrowUp, IconStopwatch, IconCopy, IconX } from '@tabler/icons-react'
 import Home from './Home'
 
 window.p = console.log
@@ -11,7 +11,7 @@ window.$ = (s) => {
 }
 window.clamp = (n, min, max) => n < min ? min : n > max ? max : n
 let move = false;
-let l;
+let l = {};
 
 let ph = document.createElement('div');
 ph.id = 'ph';
@@ -30,41 +30,85 @@ function Create({ edit }) {
 	let cont = useRef()
 
 	const Input = ({ input, i }) => {
+		let onMove = (e) => {
+			if (!move || move++ < 20) return;
 
+			e.currentTarget.style.width = e.currentTarget.clientWidth + 'px';
+			$('#bar').style.display = 'flex';
+			if ($('#ph')) $('#ph').remove();
+			e.currentTarget.style.position = 'fixed';
+			e.currentTarget.style.zIndex = '10';
+
+			onMove = (e) => {
+				l.tes = clamp(~~((e.pageY - cont.current.offsetTop) / 60), 0, inputs.length - 1)
+				$('#bar').style.top = l.tes * 60 + 'px';
+				e.currentTarget.style.left = e.pageX - l.x + 'px';
+				e.currentTarget.style.top = e.pageY - l.y + 'px';
+			}
+		}
+		//${i % 2 ? 'bg-[#491212]' : 'bg-[#360e0e]'} 
 		return (
-			<div className={`${i % 2 ? 'bg-[#491212]' : 'bg-[#360e0e]'} w-full h-[60px] p-1 text-[14px] relative [&_*]:pointer-events-none `}
+			<div className={`${i % 2 ? 'bg-[#491212]' : 'bg-[#360e0e]'}  w-full h-[60px] p-1 text-[14px] relative  `}
 				onPointerDown={e => {
 					e.currentTarget.setPointerCapture(e.pointerId);
-					e.currentTarget.style.width = e.currentTarget.clientWidth + 'px';
-					$('#bar').style.display = 'flex';
-					if ($('#ph')) $('#ph').remove();
-					// cont.current.children[i].after(ph);
-					e.currentTarget.style.position = 'fixed';
-					e.currentTarget.style.zIndex = '10';
 					l = { x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY, h: i * 60 };
 					move = 1;
 				}}
-				onPointerMove={e => {
-					if (!move) return;
-					l.tes = clamp(~~((e.pageY - cont.current.offsetTop) / 60), 0, inputs.length-1)
-					$('#bar').style.top = l.tes*60+'px';
-					e.currentTarget.style.left = e.pageX - l.x + 'px';
-					e.currentTarget.style.top = e.pageY - l.y + 'px';
-				}}
+				onPointerMove={e => onMove(e)}
 				onPointerUp={e => {
+					if(move<20) return;
 					$('#bar').style.display = 'none';
-					if($('#ph')) $('#ph').remove();
-					if(i!=l.tes) {
-						inputs.splice(i,1)
-						inputs.splice(l.tes,0,input)
+					if ($('#ph')) $('#ph').remove();
+					if (i != l.tes) {
+						inputs.splice(i, 1);
+						inputs.splice(l.tes, 0, input);
+						console.log([...inputs]);
 					}
-					setInputs(e => [...e]);
+					l.tes=0;
+					if (move >= 20) setInputs(e => [...e]);
 					move = 0;
 				}}
 			>
 				<div className="absolute left-[87%] translate-y-[100%] hover:bg-zinc-700 " onClick={e => setInputs(inputs.filter((e, ii) => ii != i))}><IconX size={18} /></div>
-				<div className="flex h-1/2 items-center">Key: {input.key} {input.down ? <IconArrowDown size={14} /> : <IconArrowUp size={14} />}</div>
-				<div className="flex h-1/2 items-center">Delay: {input.delay ? `${input.delay} ms` : '-'}</div>
+
+				<div className="flex h-1/2 items-center gap-1">
+				Key:
+					<input
+						onPointerDown={e => e.stopPropagation()}
+						maxLength={1}
+						style={{ all: 'unset', width: '45px' }}
+						className='bg-slate-700'
+						onFocus={e => e.target.select() }
+						onKeyDown={e => {
+							let key = e.key == ' ' ? 'space' : e.key;
+							e.target.value = key;
+							inputs[i].key = key;
+							inputs[i].keycode = e.keyCode;
+							inputs[i].right = e.location > 1;
+						}} 
+						defaultValue={input.key || 'delay'}
+						 />
+				</div>
+
+				<div className="flex h-1/2 relative -left-[4px] items-center">
+					<div className="">
+						<IconStopwatch size={22} />
+					</div>
+					:&nbsp;
+					<input
+						onPointerDown={e => e.stopPropagation()}
+						type="text"
+						style={{ all: 'unset', width: '45px'}}
+						onKeyUp={e => inputs[i].duration = +e.target.value || 0}
+						onFocus={e => e.target.select() }
+						// onBlur={e => e.target.value = (+input.duration || '-')}
+						defaultValue={inputs[i].duration || '-'}
+
+					/>
+					<div>ms</div>
+				</div>
+
+				<div className=""></div>
 			</div>
 
 		)
@@ -76,14 +120,14 @@ function Create({ edit }) {
 		let key = e.button == 0 ? 'lc' : e.button == 1 ? 'rc' : 'mc';
 		if (tracker[key]) return;
 		tracker[key] = Date.now();
-		setInputs(p => [...p, { key: key, down: true }]);
+		setInputs(p => [...p, { key: key }]);
 	}
 
 	function keyDown(e) {
 		if (g.once) {
 			let key = e.key;
 			if (key == ' ') key = 'space';
-			setInputs(p => [...p, { key: key, down: true }]);
+			setInputs(p => [...p, { key: key, right: e.location > 1 }]);
 			g.once = false;
 		}
 		if (!g.record) return;
@@ -93,7 +137,7 @@ function Create({ edit }) {
 		if (tracker[key]) return;
 		console.log(key.toLowerCase());
 		tracker[key] = Date.now();
-		setInputs(p => [...p, { key: key, down: true }]);
+		setInputs(p => [...p, { key: key, right: e.location > 1 }]);
 	}
 
 	function keyUp(e) {
@@ -107,13 +151,13 @@ function Create({ edit }) {
 	}
 
 	function Submit() {
-		form.inputs = inputs;
-		form.delay = 200;
+		form.inputs = [...inputs];
 		form.id ??= Math.random().toString(36).slice(2).slice(-7);
-		console.log(form);
+		form.duration = form.inputs.reduce((acc, e) => acc+=e.duration||70, 0) + (100*form.inputs.length)
+		console.log({...form});
 		macros_bc[form.id] = form;
 		send('save', JSON.stringify(macros_bc))
-		// setMacros(p => [...p, form])
+		// setMacros(p => ({...p, [form.id]: form }))
 		setView(<Home />)
 	}
 
@@ -149,10 +193,12 @@ function Create({ edit }) {
 
 			<div className="w-[20%] border-e flex flex-col items-center ">
 				<div className="text-neutral-400  ">Inputs</div>
-				<div onClick={e => document.querySelector('.laa').style.display = 'flex'}>delay</div>
-				<div onClick={e => g.once = 1}>+</div>
+				<div className="flex &>*:[]">
+					<div>add |</div>
+					<div onClick={e => setInputs(p => [...p, { key: 'delay', delay: 1 }])} >&nbsp;delay</div>
+				</div>
 				<hr className="w-[50%] mb-1" />
-				<div ref={cont} className="overflow-auto, odd:[&>*]:bg-[#360e0e], even:[&>*]:bg-[#491212], w-full  relative ">
+				<div ref={cont} className="overflow-x-hidden odd:[&>*]:bg-[#360e0e], even:[&>*]:bg-[#491212], w-full  relative ">
 					{inputs.map((e, i) => <Input input={e} i={i} />)}
 					<div id="bar" className="absolute w-full border-y border-cyan-500 z-[2] " style={{ display: 'none' }} ></div>
 				</div>
@@ -234,6 +280,7 @@ function Create({ edit }) {
 
 					<div className="flex w-full justify-center gap-x-5  ">
 						<div className="rounded-md cursor-pointer p-2 bg-neutral-700 hover:bg-neutral-600 center w-[120px] aspect-[1/.4]  " onClick={e => setView(<Home />)}>Cancel</div>
+						<div className="rounded-md cursor-pointer p-2 bg-neutral-700 hover:bg-neutral-600 center w-[120px] aspect-[1/.4]  " onClick={e => console.log(inputs)}>Log</div>
 						<div className="rounded-md cursor-pointer p-2 bg-teal-700 hover:bg-teal-600 center w-[120px] aspect-[1/.54]  " onClick={Submit} >Save</div>
 					</div>
 				</div>
