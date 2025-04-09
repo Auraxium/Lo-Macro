@@ -10,130 +10,168 @@ const worker = new Worker(`${__dirname}/worker-thread`);
 
 // const cluster = require('cluster');
 const { spawn, execFile } = require('child_process');
-// const py = execFile(path.join(__dirname, "dist/kp.exe"));
-const py = spawn('py', [path.join(__dirname, "kp.py")]);
+const py = execFile(path.join(__dirname, "dist/kp.exe"));
+// const py = spawn('py', [path.join(__dirname, "kp.py")]);
 
-py.stdout.on('data', (data) => {
-  console.log(`Python script output: ${data}`);
+py.on('exit', (code) => {
+  console.log(`Python process exited with code ${code}, respawning...`);
+  py = execFile(path.join(__dirname, "dist/kp.exe"));
 });
 
-py.stderr.on('data', (data) => {
-  console.error(`Python script error: ${data}`);
+py.on('error', (err) => {
+  console.error(`Python process error: ${err}, respawning...`);
+  py = execFile(path.join(__dirname, "dist/kp.exe"));
 });
-
-mac_path = path.join(global.app.getPath('userData'), 'macros.json')
-console.log(mac_path);
 
 const { GlobalKeyboardListener } = require("@futpib/node-global-key-listener");
+const { isArray } = require("node:util");
 const v = new GlobalKeyboardListener();
 
 let reply;
 let send;
 
-let macros = {};
-let running = {};
-let holding = {};
-let togs = {};
-let bind = {};
-let paused = {};
-let running_save = false;
-let hard_pause = false
+let macros = global.data.macros;
+let sets = global.data.sets;
 
-try {
-  macros = JSON.parse(fs.readFileSync(mac_path, 'utf8'))
-} catch (e) {
-  console.log("no data", e);
-  macros = {}
+let running = {};
+let paused = {};
+let hard_pause = false
+let mk = {
+  'lc': 'left',
+  'mc': 'middle',
+  'rc:': 'right'
 }
+
+let timeout;
+let block = 0
 
 if (send) send("load", JSON.stringify(macros));
 
 robot.setKeyboardDelay(100);
 robot.setMouseDelay(100);
-
 //#endregion
+
+//#region MAIN
+
+msgs = {
+  clear: () => clear(),
+  pause: m => {
+    Object.keys(running).forEach(e => {
+      // if(macros[e].type == )
+      paused[e] = 1;
+      macros[e] && macros[e].inputs.forEach(el => !el.delay && keyUp(el.keycode || el.key));
+    });
+    if (m[1] == 2) {
+      hard_pause = 1
+      send('pausa', 1)
+      return tempPause()
+    }
+    if (timeout) {
+      clearTimeout(timeout);
+      return timeout = null
+    }
+    clearTimeout(timeout)
+    timeout = null
+    hard_pause = !hard_pause;
+    send('pausa', hard_pause)
+  },
+  once: m => {
+    types['once'](macros[m[1]])
+  },
+  hold: m => {
+    paused[m[1]] = !m[2];
+  },
+  loop: m => {
+    paused[m[1]] = paused[m[1]] ? 0 : 1;
+  },
+  toggle: m => {
+    if (hard_pause) return
+    if (m[2] == 1) return
+    paused[m[1]] = !paused[m[1]];
+    // console.log(paused[m]);
+    types['toggle'](macros[m[1]]);
+  },
+  bind: m => {
+    if (hard_pause) return;
+    // if (m[2] == 1) return;
+    paused[m[1]] = !m[2]
+    paused[m[1]] ? keyUp(macros[m[1]].inputs[0].key) : keyDown(macros[m[1]].inputs[0].key)
+  }
+
+}
 
 worker.on("message", (m) => {
   // console.log('worker msg:', m);
-  if (m.clear) return clear();
-  if (m.pause) {
-    hard_pause = !hard_pause;
-    send('pausa', hard_pause)
-    return 
-  } 
-  if (m.tog) {
-    paused[m.tog] = paused[m.tog] ? 0 : 1;
-    send('running', JSON.stringify({ running, paused }))
-    return;
-  }
-  if (m.once) {
-    console.log(m.once);
-    types['once'](macros[m.once])
-    return;
-  }
-  let [key, state] = Object.entries(m)[0];
-  // console.log('this the key ', key, state);
-  if (bind[key] > -1) {
-    return state ? keyDown(bind[key]) : keyUp(bind[key]);
-  }
-  holding[key] = state;
+  if (msgs[m[0]]) msgs[m[0]](m);
+  send('running', JSON.stringify({ running, paused }))
+
 });
 
 let types = {
+  once: async function (mac) {
+    if (hard_pause) return;
+    send('reflow', mac.id)
+    for (let e of mac.inputs) if (running[mac.id] && !hard_pause) await keyTap(e)
+    else break;
+  },
   hold: async function (mac) {
-    console.log('cardiac arrest');
+    let delay = mac.inputs.length * 40;
     while (running[mac.id]) {
-      for (let e of mac.inputs) {
-        if (pausa(mac.id)) {
-          await Delay(1000)
-          continue;
-        }
-        if (!running[mac.id]) break;
-        if (!holding[mac.keycode]) {
-          await Delay(100);
-          continue
-        }
-        await keyTap(e);
+      await Delay(Math.random() * delay);
+      if (pausa(mac.id)) {
+        await Delay(100);
+        continue;
       }
-      // send('reflow', mac.id)
+      if(delay > 40) send('reflow', mac.id)
+      for (let e of mac.inputs)
+        if (running[mac.id] && !pausa(mac.id)) await keyTap(e)
+        else break;
+    }
+  },
+  loop: async function (mac) {
+    let delay = mac.inputs.length * 40;
+    while (running[mac.id]) {
+      await Delay(Math.random() * delay);
+      if (pausa(mac.id)) {
+        await Delay(750);
+        continue;
+      }
+      if(delay > 40) send('reflow', mac.id)
+      for (let e of mac.inputs) {
+        // console.log('???????');
+        if (running[mac.id] && !pausa(mac.id)) await keyTap(e)
+        else break;
+      }
 
-      // await Delay(40 + (Math.random() * 50));
     }
   },
   toggle: async function (mac) {
-    // console.log(mac.inputs[0].key, keymap.space, keymap[mac.inputs[0].key]);4
-    while (running[mac.id]) {
-      await Delay(Math.random() * 200);
-      send('reflow', mac.id)
-      for (let e of mac.inputs)
-        if (running[mac.id] && !pausa(mac.id)) await keyTap(e)
-        else await Delay(1000)
-    }
+    pausa(mac.id) ? keyUp(mac.inputs[0].key) : keyDown(mac.inputs[0].key)
   },
   bind: async function (mac) {
-    bind[mac.keycode] = keymap[mac.inputs[0].key];
-  },
-  once: async function (mac) {
-    console.log(mac);
-    send('reflow', mac.id)
-    for (let e of mac.inputs) await keyTap(e);
+
+    // bind[mac.keycode] = keymap[mac.inputs[0].key];
   },
 };
 
-async function runMacro(mac) {
+function runMacro(mac) {
   if (!mac) return console.log("bro wut");
-  // console.log(running);
+  // console.log(mac);
+  if (mac.length) return mac.forEach(e => runMacro(e));
   if (running[mac.id]) { //off
     // console.log("was already running so stopped");
     worker.postMessage({ keycode: mac.keycode, type: mac.type });
     running[mac.id] = 0;
     paused[mac.id] = 0;
-    send('running', JSON.stringify({ running, paused }));
+    if (mac.type.length == 6) keyUp(mac.inputs[0].key)
     return;
   }
   running[mac.id] = 1;
+  paused[mac.id] = 1;
   worker.postMessage({ keycode: mac.keycode, type: mac.type, id: mac.id });
+  // console.log(mac);
   if (mac.type != 'once') types[mac.type](mac);
+  // send('running', JSON.stringify({ running, paused }));
 }
 
 async function keyTap(e) {
@@ -168,26 +206,68 @@ async function keyTap(e) {
 }
 
 function keyDown(key) {
-  py.stdin.write(`${key},0\n`)
+  if (key in mk) return robot.mouseToggle('down', mk[key])
+  py.stdin.write(`${key}$0\n`)
   // return +key ? uIOhook.keyToggle(key, "down") : robot.mouseToggle("down");
 }
 
 function keyUp(key) {
-  py.stdin.write(`${key},1\n`)
+  if (key in mk) return robot.mouseToggle('up', mk[key])
+  py.stdin.write(`${key}$1\n`)
   // return +key ? uIOhook.keyToggle(key, "up") : robot.mouseToggle("up");
 }
 
-// test()
+//#endregion
+
+//#region elpers
 
 function pausa(id) {
   return paused[id] || hard_pause
 }
 
-//#region BRO
+function clear() {
+  Object.keys(running).forEach(e => macros[e] && macros[e].inputs.forEach(el => !el.delay && keyUp(el.keycode || el.key)))
+  running = {};
+  paused = {};
+  hard_pause = 0
+  send('running', "{}")
+}
+
+async function Delay(secs) {
+  return new Promise((res) => setTimeout(() => res(""), secs));
+}
+
+function Range(start, end, range) {
+  return Math.abs(start - end) <= range;
+}
+
+global.debounce = function (cb, delay = 1000) {
+  timeout;
+
+  return (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => {
+      cb(...args);
+    }, delay);
+  };
+};
+
+var tempPause = global.debounce(() => {
+  timeout = null;
+  hard_pause = 0;
+  send('pausa', 0);
+}, 1000 * 7);
+
+//#endregion
+
+//#region ipc events
 
 ipcMain.on("run", (e, pl) => {
-  // console.dir(">>>>");
+  let macs = JSON.parse(pl)
+  // macs = macs.map(e => global.macros[e])
+  console.log(macs);
   runMacro(JSON.parse(pl));
+  send('running', JSON.stringify({ running, paused }));
 });
 
 ipcMain.on("off", (e, pl) => {
@@ -209,34 +289,33 @@ ipcMain.on("halt", (e, pl) => {
 
 ipcMain.on("save", (e, payload) => {
   if (payload.length < 4) return;
-  macros = JSON.parse(payload);
-  // console.log('saving');
-  fs.writeFileSync(mac_path, payload);
+  console.log('saving:', payload);
+  let json = JSON.parse(payload)
+
+  Object.keys(json).forEach(e => {
+    let arr = [global.data];
+    let spl = e.split('.');
+
+    spl.forEach((el, i) => {
+      // arr[i][el] ??= {};
+      arr[i + 1] = arr[i][el];
+    });
+
+    if (spl.at(-1) == '$') delete arr.at(-3)[spl.at(-2)]
+    else arr.at(-2)[spl.at(-1)] = json[e];
+  });
+
+  fs.writeFile(`${global.app.getPath('userData')}/lo-macro.json`, JSON.stringify(global.data), e => { });
   e.reply("reply", "saved")
 });
 
 ipcMain.on("load", (e, payload) => {
   // console.log('loading', JSON.stringify(macros));
   send = e.reply;
-  send("load", JSON.stringify(macros));
+  global.send = e.reply
+  send("load", JSON.stringify({ macros, sets }));
 });
 
-function clear() {
-  running = {};
-  holding = {};
-  togs = {};
-  bind = {};
-  paused = {};
-  send('running', "{}")
-}
-
-async function Delay(secs) {
-  return new Promise((res) => setTimeout(() => res(""), secs));
-}
-
-function Range(start, end, range) {
-  return Math.abs(start - end) <= range;
-}
 
 
 // setInterval(e => console.log(robot.getMousePos()), 1000)

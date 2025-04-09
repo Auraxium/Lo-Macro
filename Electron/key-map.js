@@ -141,6 +141,7 @@
 
 const map = {
   // ';': 'semicolon'
+  "'": 91
 }
 
 module.exports = map 

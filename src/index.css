@@ -34,9 +34,9 @@ body {
 	user-select: none;
 }
 
-/* ::-webkit-scrollbar {
+ .nsb::-webkit-scrollbar {
 	display: none;
-} */
+}
 
 ::-webkit-scrollbar {
   width: 14px;
@@ -109,3 +109,16 @@ input {
   color: transparent;
   background-clip: text;
 }
+
+.icon-hover:hover {
+  background-color: rgb(115, 115, 115);
+}
+
+.pen * {
+  pointer-events: null;
+}
+
+.unset {
+  all: unset;
+}
+
