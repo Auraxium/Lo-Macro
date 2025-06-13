@@ -1,7 +1,0 @@
-{
-  "watch": [
-    "**/*.js"
-  ],
-  "ext": "js",
-  "exec": "electron ."
-}
