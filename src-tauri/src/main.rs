@@ -3,11 +3,13 @@ use std::io::{BufRead, BufReader};
 use std::process::{Child, Command, Stdio};
 
 static mut PORT: i32 = -1; //dev
-// static mut PORT: i32 = 0; //prod
+                           // static mut PORT: i32 = 0; //prod
 static mut CHILD: Option<Child> = None;
 
 unsafe fn start_node_server() {
-    if PORT == -1 {return}
+    if PORT == -1 {
+        return;
+    }
     let mut child = Command::new("node")
         .arg("server.js")
         .stdout(Stdio::piped())
@@ -22,7 +24,12 @@ unsafe fn start_node_server() {
             for line in reader.lines().flatten() {
                 println!("[node stdout] {}", line);
                 if line.contains("server started on") {
-                    PORT = line.split_whitespace().last().unwrap().parse::<i32>().unwrap();
+                    PORT = line
+                        .split_whitespace()
+                        .last()
+                        .unwrap()
+                        .parse::<i32>()
+                        .unwrap();
                     break;
                 }
             }
@@ -45,7 +52,7 @@ unsafe fn start_node_server() {
 unsafe fn kill_node_server() {
     if let Some(mut child) = CHILD.take() {
         let _ = child.kill();
-				println!("child killed");
+        println!("child killed");
     }
 }
 
@@ -57,6 +64,7 @@ fn get_port() -> i32 {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![get_port])
         .build(tauri::generate_context!())
