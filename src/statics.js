@@ -1,7 +1,7 @@
 import { Command } from "@tauri-apps/plugin-shell";
 
 let command;
-let ipc;
+export let ipc;
 
 let events = {};
 let ons = {};

@@ -4,7 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { ipcFetch } from './statics';
 
 function App() {
-	const [view, setView] = useState('')
+	const [view, setView] = useState(<Home/>)
 
 	useEffect(() => {
 		window.setView = setView;
@@ -13,7 +13,6 @@ function App() {
 	return (
 		<div className="center h-[100svh] w-full">
 			<div className="border w-[800px] h-[80%] overflow-hidden, ">{view}</div>
-			<button onClick={e => ipcFetch('test', {q: 'whats my sexuality?'}).then(res => console.log(res))} >asug6hhhdf</button>
 		</div>
 	)
 }

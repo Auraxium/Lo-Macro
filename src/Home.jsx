@@ -24,6 +24,8 @@ let icon = {
 	bind: <IconCopy />,
 }
 
+let macros_bc = {}
+
 let nset = (s) => `
 					<div class="w-full newsetE h-[70px] bg-neutral-700 border-b center border-neutral-600 relative flex-col">
 						<input type="text" class='unset, relative -top-2 bg-neutral-900 newset w-[65%] text-center ' value="${s || ''}"/> 
@@ -67,13 +69,6 @@ const Context = () => {
 
 const Macro = ({ macro, ac }) => {
 	let [active, setActive] = useState(running[macro.id])
-	// active = running[macro.id];
-	// console.log(active);
-
-	if (macro.id == "gmh6g89") {
-		// console.log(active, running, running[macro.id]);
-		// console.log('ba');
-	}
 
 	return (
 		<div className={` ${(active && pausa(macro.id) && 'paused ') || (active && ' bg-[#134e4a] ') || ' bg-neutral-800 hover:bg-neutral-700 '} relative flex px-[20px] border-b border-neutral-700 text-[25px] min-h-[75px]`}
@@ -181,7 +176,7 @@ const Set = ({ set }) => {
 
 const Panel = () => {
 	let [sets, setSets] = useState(window.sets);
-	sets = window.sets;
+	sets = window.sets||{};
 
 	useEffect(() => {
 		states.setSets = setSets;
@@ -235,7 +230,7 @@ export default function Home() {
 		window.refresh = () => refresh(Math.random());
 
 		// console.log(macros_bc);
-		if (!Object.keys(macros_bc).length) send('load')
+		//if (!Object.keys(macros_bc).length) send('load')
 
 	}, [])
 
@@ -250,25 +245,6 @@ export default function Home() {
 					if (mac.type == 'toggle') mac.type = 'loop'
 				})
 				console.log(macros_bc);
-				// send('save', JSON.stringify({ macros: macros_bc }))
-
-				// Object.keys(macros_bc).forEach(e => macros_bc[e].duration=macros_bc[e].inputs.reduce((acc, e) => acc+=e.duration||70, 0) + (120*macros_bc[e].inputs.length))
-				// Object.keys(macros_bc).forEach(id => macros_bc[id].inputs.forEach((e,i) => {
-				// 	if(e.key == 'delay') {
-				// 		if(e.delay > 1) e.duration = e.delay
-				// 		e.delay = 1;
-				// 		delete e.key;
-				// 	}
-				// 	if(e.delay) {
-				// 		if(e.delay > 1) e.duration = e.delay
-				// 		e.delay = 1;
-				// 	} 
-				// 	delete e.keycode;
-				// 	delete e.down;
-
-				// 	macros_bc[id].inputs[i] = e;
-				// }))
-				// console.log(macros);
 				window.refresh();
 			}}>
 				fiix

@@ -13,6 +13,7 @@ window.clamp = (n, min, max) => n < min ? min : n > max ? max : n
 let move = false;
 let l = {};
 const fontmul = 1.25
+let g = {}
 
 let ph = document.createElement('div');
 ph.id = 'ph';
