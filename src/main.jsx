@@ -5,6 +5,8 @@ import { ipcFetch, ipc, delay } from "./statics";
 import "./index.css";
 
 (async () => {
-  while (!ipc) await delay(500);
-  ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  // while (!ipc) await delay(500);
+  // ReactDOM.createRoot(document.getElementById("root")).render(<App />);
 })();
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);

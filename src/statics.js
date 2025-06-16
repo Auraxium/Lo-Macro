@@ -15,7 +15,9 @@ async function runCommand() {
     return ipc;
   }
   ipc = 0;
-  command = new Command("spawner", ["node", "server.js"]);
+  command = null;
+  // command = new Command("spawner", ["node", "server.exe"]);
+  command = new Command("server-win", []);
 
   command.stdout.on("data", (line) => {
     // console.log("[stdout]", line);
@@ -43,8 +45,8 @@ async function runCommand() {
   });
 
   ipc = await command.spawn();
-  console.log("new command", ipc);
-  ipc.write("ya\n");
+  console.log("new command", command, ipc);
+  // ipc.write("ya\n");
   return ipc;
 }
 
@@ -52,6 +54,7 @@ if (!ipc) runCommand();
 
 let c = 1;
 export async function ipcFetch(p, j, nr) {
+  if(!ipc) await runCommand();
   j.port ??= p;
   if (nr) return ipc.write(JSON.stringify(j) + "\n");
   j.uid = c++;

@@ -25,6 +25,14 @@
         }
       ]
     },
-    "shell:default"
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "exer",
+          "cmd": "server-win.exe"
+        }
+      ]
+    }
   ]
 }
