@@ -11,19 +11,15 @@ function App() {
   }, []);
 
   return (
-    <div className="center h-[100svh] w-full">
+    <div className="center h-[100svh] w-full mainmmm">
       <div className="border w-[800px] h-[80%] overflow-hidden, ">
-        <button
-          className="w-12 h-12"
-          onClick={(e) =>
-            ipcFetch("test", { ur: "gay" }).then(
-              (res) =>
-                (e.target.style.color = `#${Math.floor(Math.random() * 16777215)
-                  .toString(16)
-                  .toLocaleUpperCase()}`)
-            )
-          }
-        >
+        <button className="w-12 h-12" onClick={(e) => {
+          console.log('getting');
+          ipcFetch("test", { ur: "gay" }).then(res => {
+            console.log('got:', res);
+            e.target.style.color = res
+          })
+        }}>
           dsrtyl454 myl4kw5mh
         </button>
         {view}

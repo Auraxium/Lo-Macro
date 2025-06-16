@@ -16,7 +16,7 @@ async function runCommand() {
   }
   ipc = 0;
   command = null;
-  // command = new Command("spawner", ["node", "server.exe"]);
+  // command = new Command("spawner", ["node", "server.js"]);
   command = new Command("server-win", []);
 
   command.stdout.on("data", (line) => {

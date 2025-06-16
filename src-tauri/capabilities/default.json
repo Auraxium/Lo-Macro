@@ -26,11 +26,12 @@
       ]
     },
     {
-      "identifier": "shell:allow-execute",
+      "identifier": "shell:allow-spawn",
       "allow": [
         {
-          "name": "exer",
-          "cmd": "server-win.exe"
+          "name": "server-win",
+          "cmd": "./server-win.exe",
+          "args": []
         }
       ]
     }
