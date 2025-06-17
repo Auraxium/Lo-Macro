@@ -1,4 +1,5 @@
 import { Command } from "@tauri-apps/plugin-shell";
+import { isTauri } from '@tauri-apps/api/core';
 
 let command;
 export let ipc;
@@ -16,12 +17,12 @@ async function runCommand() {
   }
   ipc = 0;
   command = null;
-  // command = new Command("spawner", ["node", "server.js"]);
-  command = new Command("server-win", []);
+  command = new Command("spawner", ["node", "server.js"]);
+  // command = new Command("server-win", []);
 
   command.stdout.on("data", (line) => {
     // console.log("[stdout]", line);
-    if (line[0] != '{') return;
+    if (line[0] != "{") return console.log("[stout]", line);
     let data;
     try {
       data = JSON.parse(line);
@@ -50,11 +51,50 @@ async function runCommand() {
   return ipc;
 }
 
+if (!isTauri()) {
+  console.log('no command');
+  
+  runCommand = async () => {
+    if (ipc) return ipc;
+    if (ipc === 0) {
+      while (!ipc) await delay(500);
+      return ipc;
+    }
+    ipc = 0;
+    let ws = new WebSocket("ws://localhost:23239");
+    ws.addEventListener("open", () => {
+      console.log("Connected to server");
+      ipc = {write: ws.send}
+    });
+
+    ws.addEventListener("message", (event) => {
+      let line = event.data;
+      if (line[0] != "{") return console.log("[stout]", line);
+      let data;
+      try {
+        data = JSON.parse(line);
+      } catch (e) {}
+      if (!data) return;
+      if (events[data.event]) events[data.event]();
+      if (tasks[data.uid]) {
+        if (data.err) tasks[data.uid].n(data.err);
+        else tasks[data.uid].y(data.res);
+        delete tasks[data.uid];
+      }
+    });
+
+    ws.addEventListener("close", () => {
+      console.log("Disconnected from server");
+      ipc = null;
+    });
+  };
+}
+
 if (!ipc) runCommand();
 
 let c = 1;
 export async function ipcFetch(p, j, nr) {
-  if(!ipc) await runCommand();
+  if (!ipc) await runCommand();
   j.port ??= p;
   if (nr) return ipc.write(JSON.stringify(j) + "\n");
   j.uid = c++;
