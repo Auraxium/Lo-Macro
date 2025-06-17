@@ -1,7 +1,5 @@
-// // document.addEventListener('keydown', e => {
-// //   console.log(e);
-// //   window.refresh()
-// // })
+import { Command } from "@tauri-apps/plugin-shell";
+import { isTauri } from "@tauri-apps/api/core";
 
 // window.macros_bc = {};
 // window.sets = {};
@@ -20,19 +18,16 @@
 // }
 // window.send = window.ipc.send;
 
-// window.IpcFetch = (p, j = p, cb) => {
-//   if (!window.ipc) throw new Error('no ipc');
-//   j.uid ??= uuid(4);
-//   return new Promise((y, n) => {
-// 		if(!j.nr)
-//     ipc.on(j.uid, (res) => {
-//       ipc.off(j.uid); 
-//       if(res.err) return n({j,...res})
-//       y(res);
-//     });
-//     ipc.send(p.port || p, { ...j })
-//   });
-// }
+async function runCommand() {
+  if (ipc) return ipc;
+  if (ipc === 0) {
+    while (!ipc) await delay(500);
+    return ipc;
+  }
+  ipc = 0;
+  command = null;
+  command = new Command("spawner", ["node", "server.js"]);
+  // command = new Command("server-win", ["prod"]);
 
 // window.ipc.on('load', (e) => {
 //   if (!e) return console.log('no macas');
@@ -62,23 +57,70 @@
 //   window.refresh()
 // })
 
-// window.reflow = (el, s) => {
-//   if(!el?.style) return;
-//   if(s < 1000) return;
-//   el.style.animation = 'none';
-//   el.offsetHeight; // triggers reflow
-//   el.style.animation = `slide ${s}ms linear`; // or your original animation
-// }
+if (!isTauri()) {
+  console.log("no command");
 
-// window.uid = (l = 7, id='') => {
-//   let keys = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890";
-//   while (l-- > -1) id += keys[~~(Math.random() * keys.length)];
-//   return id;
-// }
+  runCommand = async () => {
+    if (ipc?.write) return ipc;
+    if (ipc === 0) {
+      while (!ipc) await delay(500);
+      return ipc;
+    }
+    ipc = 0;
+    let ws = new WebSocket("ws://localhost:23239");
+    let k = new Promise((y, n) => {
+      ws.addEventListener("open", () => {
+        console.log("Connected to server");
+        ipc = { write: (s) => ws.send(s) };
+        y(ipc);
+      });
 
-// window.$ = (s) => {
-//   let a = [...document.querySelectorAll(s)];
-//   return !a.length?null:a.length==1?a[0]:a
-// }
+      ws.addEventListener("message", (event) => {
+        let line = event.data;
+        if (line[0] != "{") return console.log("[stout]", line);
+        let data;
+        try {
+          data = JSON.parse(line);
+        } catch (e) {}
+        if (!data) return;
+        if (events[data.event]) events[data.event]();
+        if (tasks[data.uid]) {
+          if (data.err) tasks[data.uid].n(data.err);
+          else tasks[data.uid].y(data.res);
+          delete tasks[data.uid];
+        }
+      });
 
-// // window.addEventListener('beforeunload', e => send('save', JSON.stringify(macros_bc)))
+      ws.addEventListener("close", () => {
+        console.log("Disconnected from server");
+        ipc = null;
+        n("");
+      });
+    });
+    return k;
+  };
+}
+
+if (!ipc) runCommand();
+
+let c = 1;
+export async function ipcFetch(p, j, nr) {
+  if (typeof (ipc?.write || {}) != "function") await runCommand();
+  j.port ??= p;
+  if (nr) return ipc.write(JSON.stringify(j) + "\n");
+  j.uid = c++;
+  let k = new Promise((y, n) => {
+    tasks[j.uid] = { y, n };
+  });
+  ipc.write(JSON.stringify(j) + "\n");
+  return k;
+}
+
+export function delay(secs = 1000) {
+  return new Promise((y, n) => setTimeout(() => y(""), secs));
+}
+
+document.addEventListener("beforeunload", (e) => {
+  ipc.kill();
+  ipc = null;
+});
