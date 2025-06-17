@@ -13,7 +13,7 @@ function App() {
   return (
     <div className="center h-[100svh] w-full mainmmm">
       <div className="border w-[800px] h-[80%] overflow-hidden, ">
-        <button className="w-12 h-12" onClick={(e) => {
+        {/* <button className="w-12 h-12" onClick={(e) => {
           console.log('getting');
           ipcFetch("test", { ur: "gay" }).then(res => {
             console.log('got:', res);
@@ -21,7 +21,7 @@ function App() {
           })
         }}>
           dsrtyl454 myl4kw5mh
-        </button>
+        </button> */}
         {view}
       </div>
     </div>
