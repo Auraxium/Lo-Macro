@@ -15,6 +15,7 @@ import {
 	IconAlertTriangleFilled,
 } from '@tabler/icons-react';
 import Create from './Create';
+import { ipcFetch } from './statics';
 
 let icon = {
 	once: <IconArrowNarrowRight />,
@@ -238,14 +239,9 @@ export default function Home() {
 		<>
 			<Context />
 
-			<div className="fixed w-14 h-12 bottom-4 right-4 border " onClick={e => {
-				{/* fix buutton */ }
-				Object.keys(macros_bc).forEach(e => {
-					let mac = macros_bc[e];
-					if (mac.type == 'toggle') mac.type = 'loop'
-				})
-				console.log(macros_bc);
-				window.refresh();
+			<div className="fixed w-14 h-12 bottom-4 right-4 z-10 border " onClick={e => {
+				console.log('clicked');
+				ipcFetch('load').then(console.log)
 			}}>
 				fiix
 			</div>

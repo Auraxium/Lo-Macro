@@ -17,12 +17,13 @@ async function runCommand() {
   }
   ipc = 0;
   command = null;
-  command = new Command("spawner", ["node", "server.js"]);
-  // command = new Command("server-win", ["prod"]);
+  command = new Command("py-spawn", ["py", "main.py"]);
+  // command = new Command("node-spawn", ["node", "server.js"]);
+  // command = new Command("exe-spawn", ["prod"]);
 
   command.stdout.on("data", (line) => {
-    // console.log("[stdout]", line);
     if (line[0] != "{") return console.log("[stout]", line);
+    // console.log("[stdout]", line);
     let data;
     try {
       data = JSON.parse(line);
@@ -98,7 +99,7 @@ if (!isTauri()) {
 if (!ipc) runCommand();
 
 let c = 1;
-export async function ipcFetch(p, j, nr) {
+export async function ipcFetch(p, j={}, nr) {
   if (typeof (ipc?.write || {}) != "function") await runCommand();
   j.port ??= p;
   if (nr) return ipc.write(JSON.stringify(j) + "\n");

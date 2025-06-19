@@ -17,7 +17,7 @@
       "identifier": "shell:allow-spawn",
       "allow": [
         {
-          "name": "spawner",
+          "name": "node-spawn",
           "cmd": "node",
           "args": [
             "server.js"
@@ -29,7 +29,19 @@
       "identifier": "shell:allow-spawn",
       "allow": [
         {
-          "name": "server-win",
+          "name": "py-spawn",
+          "cmd": "py",
+          "args": [
+            "main.py"
+          ]
+        }
+      ]
+    },
+    {
+      "identifier": "shell:allow-spawn",
+      "allow": [
+        {
+          "name": "exe-spawn",
           "cmd": "./server-win.exe",
           "args": ["prod"]
         }

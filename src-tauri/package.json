@@ -14,6 +14,7 @@
   "dependencies": {
     "@futpib/node-global-key-listener": "^1.0.3",
     "@jitsi/robotjs": "^0.6.16",
+    "@tauri-apps/plugin-window-state": "^2.2.3",
     "ws": "^8.18.2"
   }
 }
