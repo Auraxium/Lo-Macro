@@ -1,7 +1,15 @@
-import sys, json, keyboard, time, random, asyncio, pydirectinput
+import sys, json, keyboard, threading, time, random, asyncio, pydirectinput
 
 pydirectinput.KEYBOARD_MAPPING["left shift"] = 0xA0
 pydirectinput.KEYBOARD_MAPPING["right shift"] = 0xA1
+
+_loop = asyncio.new_event_loop()
+
+def _runner():
+    asyncio.set_event_loop(_loop)
+    _loop.run_forever()
+
+threading.Thread(target=_runner, daemon=True).start()
 
 def log(*s):
     print(*s, flush=True)
@@ -35,7 +43,6 @@ async def loop_inputs(inputs):
         await asyncio.sleep(0.05)
 
 async def once(mac):
-    # running[mac['id']] = asyncio.run(loop_inputs(mac['inputs']))
     await loop_inputs(mac['inputs'])
         
 async def hold(mac):
@@ -43,37 +50,32 @@ async def hold(mac):
     pass
 
 async def toggle(mac):
-    while mac['id'] in running:
-        await loop_inputs(mac['inputs'])
+    try:
+        while mac['id'] in running:
+            await loop_inputs(mac['inputs'])
+            await asyncio.sleep(0)
+    except asyncio.CancelledError:
+        raise
 
-types = {
-    'once': once,
-    'hold': hold,
-    'toggle': toggle
-}
-
-def run(mac):
+async def run(mac):
     match mac['type']:
         case 'once':
-            # asyncio.run(once(mac))
             running[mac['id']] = asyncio.create_task(once(mac))
-            log('ranit')
         case 'hold':
             pass
         case 'toggle':
-            if mac.id in running:
+            if mac['id'] in running:
+                running[mac['id']].cancel()
                 del running[mac['id']]
                 return
             running[mac['id']] = asyncio.create_task(toggle(mac))
-            pass
             
 def activate(mac): 
     if mac['id'] in active:
-        # keyboard.remove_hotkey(active[mac['id']])
         active[mac['id']]() # removes hotkey i guess
         del active[mac['id']]
     else: 
-        active[mac['id']] = keyboard.on_press_key(mac['activate'], lambda e: run(mac))
+        active[mac['id']] = keyboard.on_press_key(mac['activate'], lambda e: asyncio.run_coroutine_threadsafe(run(mac), _loop))
     log(json.dumps({'event': 'active', 'data': {'active': list(active.keys()), 'running': list(running.keys())}}))
 
 def clear():
