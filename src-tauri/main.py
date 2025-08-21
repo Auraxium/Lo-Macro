@@ -8,8 +8,8 @@ except:
 	with open('mac_data.json', 'w') as f:
 		f.write("{}")
 
-def log(s):
-	print(s, flush=True)
+def log(*s):
+    print(*s, flush=True)
 
 ports = {
 	'test': lambda *e: f"#{format(int(random.random() * 16777215), '06X')}",

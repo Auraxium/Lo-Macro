@@ -11,17 +11,8 @@ function App() {
   }, []);
 
   return (
-    <div className="center h-[100svh] w-full mainmmm">
+    <div className="center h-[100svh] w-full main">
       <div className="border w-[800px] h-[80%] overflow-hidden, ">
-        <button className="w-12 h-12" onClick={(e) => {
-          console.log('getting');
-          ipcFetch("test", { ur: "gay" }).then(res => {
-            console.log('got:', res);
-            e.target.style.color = res
-          })
-        }}>
-          dsrtyl454 myl4kw5mh
-        </button>
         {view}
       </div>
     </div>
