@@ -1,0 +1,30 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capability for the main window",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "opener:default",
+    "shell:default",
+    "shell:allow-stdin-write",
+    "shell:allow-execute",
+    {
+      "identifier": "shell:allow-spawn",
+      "allow": [
+        {
+          "name": "py-spawn",
+          "cmd": "py",
+          "args": ["main.py"]
+        },
+        {
+          "name": "exe-spawn",
+          "cmd": "$RESOURCE/main.exe",
+          "args": ["prod"]
+        }
+      ]
+    }
+  ]
+}
