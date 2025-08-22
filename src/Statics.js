@@ -75,7 +75,7 @@ async function runCommand(s) {
       try {
         data = JSON.parse(line);
         if (!data) return console.log("[stout]", line);
-        console.log(data)
+        // console.log(data)
         if (events[data.event]) return events[data.event](data);
         if (tasks[data.uid]) {
           if (data.err) tasks[data.uid].n(data);
