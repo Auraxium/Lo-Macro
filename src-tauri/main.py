@@ -21,6 +21,7 @@ data = {
 
 active = {}
 running = {}
+downs = {}
 
 def keyDown(key):
     pass
@@ -32,7 +33,7 @@ async def keyTap(key):
     if 'delay' in key:
         await asyncio.sleep(key['delay']/1000)
         return
-    log(key['key'])
+    # log(key['key'])
     pydirectinput.keyDown(key['key'])
     await asyncio.sleep(key['down']/1000)
     pydirectinput.keyUp(key['key'])
@@ -46,7 +47,12 @@ async def once(mac):
     await loop_inputs(mac['inputs'])
         
 async def hold(mac):
-    
+    try:
+        while mac['activate'] in downs:
+            await loop_inputs(mac['inputs'])
+            await asyncio.sleep(0)
+    except asyncio.CancelledError:
+        raise
     pass
 
 async def toggle(mac):
@@ -58,6 +64,9 @@ async def toggle(mac):
         raise
 
 async def run(mac):
+    if mac['activate'] in downs:
+        return #log('stop spamming')
+    downs[mac['activate']] = 1
     match mac['type']:
         case 'once':
             running[mac['id']] = asyncio.create_task(once(mac))
@@ -81,9 +90,26 @@ def activate(mac):
 def clear():
     # get keys in active -> keyboard.remove_keys
     # get keys in running -> stop mid run + up any down keys
-    pass
+    keyboard.unhook_all()
+    global active 
+    global running 
+    global downs 
+    active = {}
+    running = {}
+    downs = {}
+    log(json.dumps({'event': 'active', 'data': {'active': [], 'running': []}}))
 
 keyboard.add_hotkey('home', clear)
+
+def handler(event):
+    # log(event.scan_code)
+    if event.event_type == "up":
+        try: 
+            del downs[event.name] # event.name annoyingly volitile, map a mapper in frontend
+        except:
+            pass
+
+keyboard.hook(handler)
 
 ports = {
     "test": lambda e: f"#{format(int(random.random() * 16777215), '06X')}",
