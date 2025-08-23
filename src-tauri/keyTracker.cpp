@@ -20,28 +20,27 @@ LRESULT CALLBACK RawInputProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 		string result;
 
-		if (rawHeader.dwType == RIM_TYPEKEYBOARD)
-{
-    UINT vk = raw.data.keyboard.VKey;
+		if (rawHeader.dwType == RIM_TYPEKEYBOARD) {
+			result.append(to_string(raw.data.keyboard.VKey)).append(",").append(to_string(raw.data.keyboard.Flags)).append(",");
+			cout << result << rawHeader.hDevice << endl;
+		}
 
-    UINT scanCode = MapVirtualKey(vk, MAPVK_VK_TO_VSC);
+	// 	if (rawHeader.dwType == RIM_TYPEKEYBOARD) {
+  // 	  UINT vk = raw.data.keyboard.VKey;
+  // 	  UINT scanCode = MapVirtualKey(vk, MAPVK_VK_TO_VSC);
+  // 	  if (raw.data.keyboard.Flags & RI_KEY_E0)
+  // 	      scanCode |= 0xE000;
+  // 	  char keyName[128];
+  // 	  if (GetKeyNameTextA(scanCode << 16, keyName, sizeof(keyName)) > 0) {
+  // 	      cout << keyName << "," << vk << "," << raw.data.keyboard.Flags << "," << rawHeader.hDevice << endl;
+  // 	  } else {
+  // 	      cout << "-1" << "," << vk << "," << raw.data.keyboard.Flags << "," << rawHeader.hDevice << endl;
+  // 	  }
 
-    if (raw.data.keyboard.Flags & RI_KEY_E0)
-        scanCode |= 0xE000;
-
-    char keyName[128];
-    if (GetKeyNameTextA(scanCode << 16, keyName, sizeof(keyName)) > 0) {
-        cout << keyName << "," << vk << "," << raw.data.keyboard.Flags << "," << rawHeader.hDevice << endl;
-    } else {
-        cout << "-1" << "," << vk << "," << raw.data.keyboard.Flags << "," << rawHeader.hDevice << endl;
-    }
-}
-		else if (rawHeader.dwType == RIM_TYPEMOUSE)
-		{
+		else if (rawHeader.dwType == RIM_TYPEMOUSE) {
 			if(raw.data.mouse.ulButtons > 0 && raw.data.mouse.ulButtons < 33) {
 				result.append(to_string(raw.data.mouse.usFlags)).append(",")
 				.append(to_string(raw.data.mouse.ulButtons-1)).append(",");
-
 				cout << result << rawHeader.hDevice << endl;
 			}
 		}

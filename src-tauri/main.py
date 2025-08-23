@@ -1,9 +1,4 @@
 import sys, json, keyboard, threading, subprocess, time, random, asyncio, pydirectinput
-import ctypes
-
-user32 = ctypes.windll.user32
-# pydirectinput.KEYBOARD_MAPPING["controlleft"] = 0xA2
-# pydirectinput.KEYBOARD_MAPPING["right shift"] = 0xA1
 
 def log(*s):
     print(*s, flush=True)
@@ -26,11 +21,9 @@ def _runner():
 
 threading.Thread(target=_runner, daemon=True).start()
 
-keys = {}
-
 def keyTracker():
     proc = subprocess.Popen(
-        ["key-logger.exe"],
+        ["keyTracker.exe"],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,  # ensures stdout is str not bytes (Python 3.7+)
@@ -56,17 +49,16 @@ def keyTracker():
         if spl[0] in holding:
             continue
         
-        
         down = None
         key = int(spl[0])
         down = down_check.get(spl[1]) or False
         
-        # log(down, key, watch_keys, watch_keys.get(key))
+        # log(line)
+        # log(down, key, watch_keys)
         
         if down and key in watch_keys:
-            # log(watch_keys[key])
             for e in watch_keys[key]:
-                asyncio.run_coroutine_threadsafe(run(active.get(e)))
+                asyncio.run_coroutine_threadsafe(run(active[e]), _loop)
     
 threading.Thread(target=keyTracker, daemon=True).start()
 
@@ -80,10 +72,12 @@ async def keyTap(key):
     if 'delay' in key:
         await asyncio.sleep(key['delay']/1000)
         return
-    # log(key['key'])
-    pydirectinput.keyDown(key['key'])
+    log(key['key'])
+    # pydirectinput.keyDown(key['key'])
+    keyboard.press(key['key'])
     await asyncio.sleep(key['down']/1000)
-    pydirectinput.keyUp(key['key'])
+    keyboard.release(key['key'])
+    # pydirectinput.keyUp(key['key'])
     
 async def loop_inputs(inputs):
     for x in inputs:
@@ -95,7 +89,7 @@ async def once(mac):
         
 async def hold(mac):
     try:
-        while mac['activate'] in downs:
+        while mac['activate'] in holding:
             await loop_inputs(mac['inputs'])
             await asyncio.sleep(0)
     except asyncio.CancelledError:
@@ -111,12 +105,11 @@ async def toggle(mac):
         raise
 
 async def run(mac):
-    downs[mac['activate']] = 1
     match mac['type']:
         case 'once':
             running[mac['id']] = asyncio.create_task(once(mac))
         case 'hold':
-            pass
+            running[mac['id']] = asyncio.create_task(toggle(mac))
         case 'toggle':
             if mac['id'] in running:
                 running[mac['id']].cancel()
@@ -126,16 +119,15 @@ async def run(mac):
             
 def activate(mac): 
     id = mac.get('id')
-    activate = keyboard.key_to_scan_codes(mac.get('activate'))
+    activate = mac.get('activateCode')
     if id in active:
         active.pop(id, None)
         watch_keys.get(activate).remove(id)
     else: 
         active[id] = mac
-        watch_keys.setdefault(activate, set()).add(activate)
+        watch_keys.setdefault(activate, set()).add(id)
         
         # keyboard.on_press_key(mac['activate'], lambda e: asyncio.run_coroutine_threadsafe(run(mac), _loop))
-    log(mac.get('activate'), activate)
     log(json.dumps({'event': 'active', 'data': {'active': list(active.keys()), 'running': list(running.keys())}}))
 
 def clear():
@@ -151,16 +143,6 @@ def clear():
     log(json.dumps({'event': 'active', 'data': {'active': [], 'running': []}}))
 
 keyboard.add_hotkey('home', clear)
-
-def handler(event):
-    # log(event.scan_code)
-    if event.event_type == "up":
-        try: 
-            del downs[event.name] # event.name annoyingly volitile, map a mapper in frontend
-        except:
-            pass
-
-keyboard.hook(handler)
 
 ports = {
     "test": lambda e: f"#{format(int(random.random() * 16777215), '06X')}",

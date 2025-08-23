@@ -83,7 +83,7 @@ async function runCommand(s) {
           delete tasks[data.uid];
         }
         if (!data.uid && !data.event) return console.log(data);
-      } catch (err) { console.error(err) }
+      } catch (err) { console.error(err); console.log('err cause:', line) }
     });
 
     window.command.stderr.on("data", (line) => {

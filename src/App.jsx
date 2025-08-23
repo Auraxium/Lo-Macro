@@ -59,9 +59,19 @@ function Home() {
 let recording;
 let key_track = {};
 let bad_case = {
+  16: {
+    0: 'shiftleft',
+    2: 'shiftleft',
+  },
   17: {
+    0: 'ctrlleft',
     1: 'ctrlleft',
-    2: 'ctrlright'
+    2: 'ctrlright',
+    3: 'ctrlright'
+  },
+  18: {
+    0: 'altleft',
+    2: 'altright' 
   }
 }
 
@@ -77,7 +87,6 @@ function Create({ edit }) {
   useEffect(() => {
     function keyDown(e) {
       if (!recording) return;
-      // let key = bad_case[e.keyCode]?.[e.location] || e.key;
       let key = (bad_case[e.keyCode]?.[e.location] || (e.location && e.code.toLowerCase()) || e.key).toLowerCase();
       if (key_track[key]) return;
       console.log(e.key, e);
@@ -92,8 +101,7 @@ function Create({ edit }) {
 
     function keyUp(e) {
       if (!recording) return;
-      // let key = bad_case[e.keyCode]?.[e.location] || e.key;
-      let key = (bad_case[e.keyCode]?.[e.location] || (e.location && e.code.toLowerCase()) || e.key).toLowerCase();
+      let key = (bad_case[e.keyCode]?.[e.location] || ((e.location) && e.code.toLowerCase()) || e.key).toLowerCase();
       if (!key_track[key]) return;
       let temp = { ...key_track[key] }
       delete key_track[key];
@@ -180,7 +188,7 @@ function Create({ edit }) {
                 e.target.style.fontSize = `${22 * (1 - (((e.key || '').length - 1) * .05))}px`;
                 e.target.value = e.key;
                 form.activate = e.key;
-
+                form.activateCode = e.keyCode;
               }}
             />
           </div>
