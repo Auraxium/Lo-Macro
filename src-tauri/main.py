@@ -1,15 +1,9 @@
-import sys, json, keyboard, threading, time, random, asyncio, pydirectinput
+import sys, json, keyboard, threading, subprocess, time, random, asyncio, pydirectinput
+import ctypes
 
-pydirectinput.KEYBOARD_MAPPING["left shift"] = 0xA0
-pydirectinput.KEYBOARD_MAPPING["right shift"] = 0xA1
-
-_loop = asyncio.new_event_loop()
-
-def _runner():
-    asyncio.set_event_loop(_loop)
-    _loop.run_forever()
-
-threading.Thread(target=_runner, daemon=True).start()
+user32 = ctypes.windll.user32
+# pydirectinput.KEYBOARD_MAPPING["controlleft"] = 0xA2
+# pydirectinput.KEYBOARD_MAPPING["right shift"] = 0xA1
 
 def log(*s):
     print(*s, flush=True)
@@ -21,7 +15,60 @@ data = {
 
 active = {}
 running = {}
-downs = {}
+holding = {}
+watch_keys = {}
+
+_loop = asyncio.new_event_loop()
+
+def _runner():
+    asyncio.set_event_loop(_loop)
+    _loop.run_forever()
+
+threading.Thread(target=_runner, daemon=True).start()
+
+keys = {}
+
+def keyTracker():
+    proc = subprocess.Popen(
+        ["key-logger.exe"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,  # ensures stdout is str not bytes (Python 3.7+)
+        bufsize=1   # line-buffered
+    )
+    
+    down_check = {
+        '0': True,
+        '2': True,
+    }
+    
+    scan_map = {}
+
+    for line in proc.stdout:
+        line = line.strip()
+        if not line:
+            continue
+
+        spl = line.split(',')
+        if len(spl[2]) == 1:
+            continue
+        
+        if spl[0] in holding:
+            continue
+        
+        
+        down = None
+        key = int(spl[0])
+        down = down_check.get(spl[1]) or False
+        
+        # log(down, key, watch_keys, watch_keys.get(key))
+        
+        if down and key in watch_keys:
+            # log(watch_keys[key])
+            for e in watch_keys[key]:
+                asyncio.run_coroutine_threadsafe(run(active.get(e)))
+    
+threading.Thread(target=keyTracker, daemon=True).start()
 
 def keyDown(key):
     pass
@@ -64,8 +111,6 @@ async def toggle(mac):
         raise
 
 async def run(mac):
-    if mac['activate'] in downs:
-        return #log('stop spamming')
     downs[mac['activate']] = 1
     match mac['type']:
         case 'once':
@@ -80,11 +125,17 @@ async def run(mac):
             running[mac['id']] = asyncio.create_task(toggle(mac))
             
 def activate(mac): 
-    if mac['id'] in active:
-        active[mac['id']]() # removes hotkey i guess
-        del active[mac['id']]
+    id = mac.get('id')
+    activate = keyboard.key_to_scan_codes(mac.get('activate'))
+    if id in active:
+        active.pop(id, None)
+        watch_keys.get(activate).remove(id)
     else: 
-        active[mac['id']] = keyboard.on_press_key(mac['activate'], lambda e: asyncio.run_coroutine_threadsafe(run(mac), _loop))
+        active[id] = mac
+        watch_keys.setdefault(activate, set()).add(activate)
+        
+        # keyboard.on_press_key(mac['activate'], lambda e: asyncio.run_coroutine_threadsafe(run(mac), _loop))
+    log(mac.get('activate'), activate)
     log(json.dumps({'event': 'active', 'data': {'active': list(active.keys()), 'running': list(running.keys())}}))
 
 def clear():

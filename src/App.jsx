@@ -59,13 +59,9 @@ function Home() {
 let recording;
 let key_track = {};
 let bad_case = {
-  16: {
-    1: 'left shift',
-    2: 'right shift'
-  },
-  18: {
-    1: 'left alt',
-    2: 'right alt'
+  17: {
+    1: 'ctrlleft',
+    2: 'ctrlright'
   }
 }
 
@@ -82,9 +78,9 @@ function Create({ edit }) {
     function keyDown(e) {
       if (!recording) return;
       // let key = bad_case[e.keyCode]?.[e.location] || e.key;
-      let key = (e.location ? e.code.toLowerCase() : e.key).toLowerCase();
+      let key = (bad_case[e.keyCode]?.[e.location] || (e.location && e.code.toLowerCase()) || e.key).toLowerCase();
       if (key_track[key]) return;
-      console.log(e);
+      console.log(e.key, e);
       setInputs(p => {
         key_track[key] = {
           date: Date.now(),
@@ -97,7 +93,7 @@ function Create({ edit }) {
     function keyUp(e) {
       if (!recording) return;
       // let key = bad_case[e.keyCode]?.[e.location] || e.key;
-      let key = (e.location ? e.code.toLowerCase() : e.key).toLowerCase();
+      let key = (bad_case[e.keyCode]?.[e.location] || (e.location && e.code.toLowerCase()) || e.key).toLowerCase();
       if (!key_track[key]) return;
       let temp = { ...key_track[key] }
       delete key_track[key];
