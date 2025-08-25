@@ -72,7 +72,7 @@ async def keyTap(key):
     if 'delay' in key:
         await asyncio.sleep(key['delay']/1000)
         return
-    log(key['key'])
+    # log(key['key'])
     # pydirectinput.keyDown(key['key'])
     keyboard.press(key['key'])
     await asyncio.sleep(key['down']/1000)
