@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, createContext } from "react";
-import { states, ipcFetch, init, delay, styles, macros, uid, save, version } from './Statics';
+import { states, ipcFetch, init, delay, styles, macros, uid, save, version, actives } from './Statics';
 import { IconArrowNarrowRight, IconArrowBigDownLine, IconRefresh, IconToggleRight, IconCopy, IconStopwatch, IconX, IconArrowNarrowUp, IconArrowNarrowDown, IconPencil, IconTrash, IconPlus } from "@tabler/icons-react";
 
 let size = 28;
@@ -13,11 +13,12 @@ let type_icon_map = {
 
 function Home() {
   let [macros_stat, setMacros] = useState({ ...macros });
-  let [mac_states, setActive] = useState({ active: {}, running: {} });
+  let [mac_states, setActive] = useState(actives);
 
   useEffect(() => {
     states.setMacros = setMacros;
     states.setActive = setActive;
+    // console.log('???')
   }, [])
 
   const Macro = ({ mac }) => {
@@ -27,7 +28,7 @@ function Home() {
         ipcFetch('activate', { id: mac.id, mac }, 1)
       }}>
         <div className="absolute bottom-0 flex items-center gap-1 text-[#888] ">
-          {mac.inputs.filter(e => e.down).map((e, i, arr) => <><div key={1} className="">{e.key}</div> {i + 1 == arr.length ? '' : <IconArrowNarrowRight size={20} />}</>)}
+          {mac.inputs.filter(e => e.down).map((e, i, arr) => <><div key={1} className="capitalize">{e.key}</div> {i + 1 == arr.length ? '' : <IconArrowNarrowRight size={20} />}</>)}
         </div>
         <div className="w-[20%] flex items-center,">
           {type_icon_map[mac.type]} &nbsp; "<b>{mac.activate}</b>"
@@ -37,7 +38,7 @@ function Home() {
         </div>
         <div className="w-[20%] flex justify-around items-center" onClick={e => e.stopPropagation()}>
           <div className="p-1" onClick={() => states.setView(<Create edit={{ ...mac }} />)}><IconPencil /></div>
-          <div className="p-1" onClick={() => {delete macros[mac.id]; save(); setMacros({...macros})}} ><IconTrash /></div>
+          <div className="p-1" onClick={() => { delete macros[mac.id]; save(); setMacros({ ...macros }) }} ><IconTrash /></div>
         </div>
       </div>
     )
@@ -71,7 +72,7 @@ let bad_case = {
   },
   18: {
     0: 'altleft',
-    2: 'altright' 
+    2: 'altright'
   }
 }
 
@@ -112,13 +113,21 @@ function Create({ edit }) {
       })
     }
 
-    window.addEventListener('keydown', keyDown);
-    window.addEventListener('keyup', keyUp);
+    function handleLine({detail}) {
+      console.log(detail)
+    }
+
+    // window.addEventListener('keydown', keyDown);
+    // window.addEventListener('keyup', keyUp);
+    document.addEventListener('RecordLine', handleLine);
+    // ipcFetch('record', { recording: true }, 1)
 
     return () => {
+      document.removeEventListener('RecordLine', handleLine);
+      ipcFetch('record', { recording: false }, 1)
       recording = false;
-      window.removeEventListener('keydown', keyDown)
-      window.removeEventListener('keyup', keyUp)
+      // window.removeEventListener('keydown', keyDown)
+      // window.removeEventListener('keyup', keyUp)
     }
   }, [])
 
@@ -164,9 +173,9 @@ function Create({ edit }) {
           <div className="">add</div>
           |
           <div className="delay" onClick={() => {
-            inputs.push({ delay: 0, edit: 1 })
+            inputs.push({ delay: 0, edit: 1 });
             form.recording = 0;
-            setInputs([...inputs])
+            setInputs([...inputs]);
           }}>delay</div>
         </div>
         <hr className="mx-[17%] text-zinc-400 mb-1" />

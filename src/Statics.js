@@ -1,7 +1,7 @@
 import { Command } from "@tauri-apps/plugin-shell";
 
 // export let global = {};
-export let version = 0.1;
+export let version = 0.1;             
 export let states = {};
 export let styles = {
   button: 'rounded-sm center cursor-pointer p-2'
@@ -9,6 +9,7 @@ export let styles = {
 
 export let macros = {};
 export let sets = {};
+export let actives = {active: {}, running: {}}
 let data = JSON.parse(localStorage.getItem('data') || '{}');
 macros = data.macros || macros;
 sets = data.sets || sets;
@@ -17,9 +18,14 @@ window.tasks ??= {};
 
 let events = {
   'active': e => {
-    let active = Object.fromEntries(e.data.active.map(k => [k, 1]));
-    let running = Object.fromEntries(e.data.running.map(k => [k, 1]));
-    states.setActive({ active, running })
+    actives.active = Object.fromEntries(e.data.active.map(k => [k, 1]));
+    actives.running = Object.fromEntries(e.data.running.map(k => [k, 1]));    
+    // console.log(actives, states.setActive);
+    states.setActive({ ...actives });
+  },
+  'line': e => {
+    // console.log(e)
+    document.dispatchEvent(new CustomEvent('RecordLine', {detail: e.line}))
   }
 };
 
@@ -64,6 +70,7 @@ async function runCommand(s) {
     while (!window.pyspawn) await delay(400);
     return window.pyspawn;
   }
+  window.pyspawn?.kill && window.pyspawn.kill();
   window.pyspawn = 0;
   if (!window.command) {
     window.command = new Command("py-spawn", ["py", "main.py"]);
@@ -92,6 +99,7 @@ async function runCommand(s) {
 
     window.command.on("close", (data) => {
       console.log("Process exited with code", data.code);
+      window.pyspawn?.kill && window.pyspawn.kill();
       window.pyspawn = null;
     });
   }

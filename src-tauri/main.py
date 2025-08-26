@@ -1,4 +1,4 @@
-import sys, json, keyboard, threading, subprocess, time, random, asyncio, pydirectinput
+import sys, json, keyboard, mouse, threading, subprocess, time, random, asyncio, pydirectinput
 
 def log(*s):
     print(*s, flush=True)
@@ -12,6 +12,10 @@ active = {}
 running = {}
 holding = {}
 watch_keys = {}
+recording = False
+def set_recording(val):
+    global recording
+    recording = val
 
 _loop = asyncio.new_event_loop()
 
@@ -36,26 +40,27 @@ def keyTracker():
     }
     
     scan_map = {}
+    global recording
 
     for line in proc.stdout:
         line = line.strip()
         if not line:
             continue
-
         spl = line.split(',')
         if len(spl[2]) == 1:
             continue
-        
-        if spl[0] in holding:
-            continue
-        
-        down = None
-        key = int(spl[0])
         down = down_check.get(spl[1]) or False
-        
-        # log(line)
+        if down and spl[0] in holding:
+            continue
+        if recording: 
+            log(json.dumps({'event': 'line', 'line': line}))
         # log(down, key, watch_keys)
-        
+        if down:
+            holding[spl[0]] = 1
+        else:
+            holding.pop(spl[0], None)
+            
+        key = int(spl[0])
         if down and key in watch_keys:
             for e in watch_keys[key]:
                 asyncio.run_coroutine_threadsafe(run(active[e]), _loop)
@@ -148,6 +153,7 @@ ports = {
     "test": lambda e: f"#{format(int(random.random() * 16777215), '06X')}",
     "load": lambda e: data,
     "activate": lambda e: activate(e['mac']),
+    "record": lambda e: set_recording(e['recording']),
     "clear": clear,
 }
 
