@@ -13,7 +13,6 @@ export let actives = {active: {}, running: {}}
 let data = JSON.parse(localStorage.getItem('data') || '{}');
 macros = data.macros || macros;
 sets = data.sets || sets;
-
 window.tasks ??= {};
 
 let events = {

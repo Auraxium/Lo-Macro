@@ -1,4 +1,4 @@
-import sys, json, keyboard, mouse, threading, subprocess, time, random, asyncio, pydirectinput
+import sys, json, keyboard, mouse, threading, subprocess, random, asyncio, pydirectinput
 
 def log(*s):
     print(*s, flush=True)
@@ -13,16 +13,42 @@ running = {}
 holding = {}
 watch_keys = {}
 recording = False
+keyboard_recording = None
+mouse_recording = None
+
+def keyboard_handler(event):
+    try:
+        log(json.dumps({'event': 'line', 'line': f"{event.scan_code},{event.name},{event.event_type},{event.is_keypad}"}))
+    except Exception as err:
+        log("")
+        
+def mouse_handler(event):
+    try:
+        if not hasattr(event, "button"):
+            return
+        x, y = mouse.get_position()
+        #log(dir(event)) #button count event_type index
+        log(json.dumps({'event': 'line', 'line': f"0,{event.button},{event.event_type},{x}|{y}"}))
+    except Exception as err:
+        log("")
+        
 def set_recording(val):
-    global recording
-    recording = val
+    global keyboard_recording, mouse_recording
+    if val:
+        keyboard_recording = keyboard.hook(keyboard_handler)
+        mouse_recording = mouse.hook(mouse_handler)
+    else:
+        if keyboard_recording is not None:
+            keyboard.unhook(keyboard_recording)
+            keyboard_recording = None
+        if mouse_recording is not None:
+            mouse.unhook(mouse_recording)
+            mouse_recording = None
 
 _loop = asyncio.new_event_loop()
-
 def _runner():
     asyncio.set_event_loop(_loop)
     _loop.run_forever()
-
 threading.Thread(target=_runner, daemon=True).start()
 
 def keyTracker():
@@ -38,7 +64,7 @@ def keyTracker():
         '0': True,
         '2': True,
     }
-    
+   
     scan_map = {}
     global recording
 
@@ -52,9 +78,7 @@ def keyTracker():
         down = down_check.get(spl[1]) or False
         if down and spl[0] in holding:
             continue
-        if recording: 
-            log(json.dumps({'event': 'line', 'line': line}))
-        # log(down, key, watch_keys)
+        # log(line)
         if down:
             holding[spl[0]] = 1
         else:
@@ -64,7 +88,6 @@ def keyTracker():
         if down and key in watch_keys:
             for e in watch_keys[key]:
                 asyncio.run_coroutine_threadsafe(run(active[e]), _loop)
-    
 threading.Thread(target=keyTracker, daemon=True).start()
 
 def keyDown(key):
@@ -77,12 +100,19 @@ async def keyTap(key):
     if 'delay' in key:
         await asyncio.sleep(key['delay']/1000)
         return
-    # log(key['key'])
-    # pydirectinput.keyDown(key['key'])
-    keyboard.press(key['key'])
+    log(key['key'])
+    if 'mouse' in key:
+        x = int(key['pos'][0])+random.randint(-10,10)
+        y = int(key['pos'][1])+random.randint(-10,10)
+        mouse.move(x,y,absolute=True,duration=.1+(random.randint(0,5)/100))
+        await asyncio.sleep(100/1000)
+        mouse.press(button=key['key'])
+        await asyncio.sleep(key['down']/1000)
+        mouse.release(button=key['key'])
+        return
+    pydirectinput.keyDown(key['key'])
     await asyncio.sleep(key['down']/1000)
-    keyboard.release(key['key'])
-    # pydirectinput.keyUp(key['key'])
+    pydirectinput.keyUp(key['key'])
     
 async def loop_inputs(inputs):
     for x in inputs:
@@ -127,6 +157,7 @@ def activate(mac):
     activate = mac.get('activateCode')
     if id in active:
         active.pop(id, None)
+        running.pop(id, None)
         watch_keys.get(activate).remove(id)
     else: 
         active[id] = mac
@@ -138,7 +169,7 @@ def activate(mac):
 def clear():
     # get keys in active -> keyboard.remove_keys
     # get keys in running -> stop mid run + up any down keys
-    keyboard.unhook_all()
+    # keyboard.unhook_all()
     global active 
     global running 
     global downs 
@@ -154,7 +185,7 @@ ports = {
     "load": lambda e: data,
     "activate": lambda e: activate(e['mac']),
     "record": lambda e: set_recording(e['recording']),
-    "clear": clear,
+    "clear": clear
 }
 
 try:

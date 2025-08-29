@@ -36,6 +36,7 @@ LRESULT CALLBACK RawInputProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
   // 	  } else {
   // 	      cout << "-1" << "," << vk << "," << raw.data.keyboard.Flags << "," << rawHeader.hDevice << endl;
   // 	  }
+	//}
 
 		else if (rawHeader.dwType == RIM_TYPEMOUSE) {
 			if(raw.data.mouse.ulButtons > 0 && raw.data.mouse.ulButtons < 33) {

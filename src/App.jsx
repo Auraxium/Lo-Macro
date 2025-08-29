@@ -73,31 +73,37 @@ let bad_case = {
   18: {
     0: 'altleft',
     2: 'altright'
-  }
+  },
+  'left': 'leftclick',
+  'right': 'rightclick',
+  'middle': 'middleclick'
 }
+let down_map = new Set(['0', '2']);
 
 function Create({ edit }) {
-  let [form, setForm] = useState(edit || { type: 'once' });
+  let [form, setForm] = useState(edit && {...edit} || { type: 'once' });
   let [inputs, setInputs] = useState(form.inputs || []);
   let inputs_ref = useRef();
-  let refresh = () => setInputs([...inputs])
+  let move_bar = useRef();
+  let refresh = () => setInputs([...inputs]);
   recording = form.recording; // convienent
   // if(!inputs.length)
   // console.log(inputs)
 
   useEffect(() => {
     function keyDown(e) {
-      if (!recording) return;
-      let key = (bad_case[e.keyCode]?.[e.location] || (e.location && e.code.toLowerCase()) || e.key).toLowerCase();
-      if (key_track[key]) return;
-      console.log(e.key, e);
-      setInputs(p => {
-        key_track[key] = {
-          date: Date.now(),
-          pos: p.length
-        }
-        return [...p, { down: null, key: key, keycode: e.keyCode }];
-      });
+      console.log(e)
+      // if (!recording) return;
+      // let key = (bad_case[e.keyCode]?.[e.location] || (e.location && e?.code) || e.key)
+      // if (key_track[key]) return;
+      // console.log(e.key, String.fromCharCode(e.keyCode), e, );
+      // setInputs(p => {
+      //   key_track[key] = {
+      //     date: Date.now(),
+      //     pos: p.length
+      //   }
+      //   return [...p, { down: null, key: key, keycode: e.keyCode }];
+      // });
     }
 
     function keyUp(e) {
@@ -113,8 +119,34 @@ function Create({ edit }) {
       })
     }
 
-    function handleLine({detail}) {
-      console.log(detail)
+    function handleLine({ detail }) {
+      // console.log(detail);
+      let spl = detail.split(',');
+      let code = +spl[0];
+      let mouse = !code;
+      let key = spl[1].toLowerCase();
+      let down = spl[2] != 'up';
+      if (!recording) return;
+      if (down) {
+        if (key_track[key]) return;
+        setInputs(p => {
+          key_track[key] = {
+            date: Date.now(),
+            pos: p.length
+          }
+          let js = { down: null, key: key, keycode: code }
+          if (mouse) js = { ...js, mouse: 1, pos: spl[3].split('|') }
+          return [...p, js];
+        });
+      } else {
+        let temp = { ...key_track[key] }
+        delete key_track[key];
+        setInputs(p => {
+          (p[temp.pos] || {}).down = Date.now() - temp.date;
+          // return [...p, { down: 0, key: key, keycode: e.keyCode }];
+          return [...p];
+        })
+      }
     }
 
     // window.addEventListener('keydown', keyDown);
@@ -123,11 +155,11 @@ function Create({ edit }) {
     // ipcFetch('record', { recording: true }, 1)
 
     return () => {
+      recording = false;
+      window.removeEventListener('keydown', keyDown)
+      window.removeEventListener('keyup', keyUp)
       document.removeEventListener('RecordLine', handleLine);
       ipcFetch('record', { recording: false }, 1)
-      recording = false;
-      // window.removeEventListener('keydown', keyDown)
-      // window.removeEventListener('keyup', keyUp)
     }
   }, [])
 
@@ -150,24 +182,69 @@ function Create({ edit }) {
       ele.select();
     })
 
-    return (
-      <div className={`${i % 2 ? 'bg-[#491212]' : 'bg-[#360e0e]'} border-b-[1px], relative col box-border px-1 py-2 capitalize`}>
-        <div className="absolute border, right-[3px] top-[31%] " onClick={() => { setInputs(p => [...p.filter((e, ind) => ind != i)]) }} ><IconX size={18} /></div>
-        {'delay' in data ?
-          <div className="flex items-center text-[13px]">Delay: &nbsp; {data.edit ? <div className=" max-h-[9px], center " ><input className="edit max-h-[16px] h-full, max-w-[65px] " defaultValue={data.delay} onKeyDown={e => e.key == 'Enter' && e.target.blur()} onBlur={(e) => { el.delay = parseInt(e.target.value) || 1000; refresh() }} /></div> : <span onClick={() => { el.edit = 1; refresh() }}>{data.delay}ms</span>}</div>
-          :
-          <div className="flex items-center">
-            {data.key}&nbsp;{data.down == 0 ? <IconArrowNarrowUp size={18} /> : <IconArrowNarrowDown size={18} />}&nbsp;{data.down || ''}
+    let main = (() => {
+      if ('delay' in data) return (
+        <div className="flex items-center text-[13px]">Delay: &nbsp;
+          {data.edit ?
+            <div className=" max-h-[9px], center " >
+              <input className="edit max-h-[16px] h-full, max-w-[65px] " defaultValue={data.delay} onKeyDown={e => e.key == 'Enter' && e.target.blur()} onBlur={(e) => { el.delay = parseInt(e.target.value) || 1000; refresh() }} />
+            </div>
+            :
+            <span onClick={() => { el.edit = 1; refresh() }}>{data.delay}ms</span>
+          }
+        </div>
+      )
+      if ('mouse' in data) {
+        return (
+          <div className="col w-full justify-center ">
+            <div className="flex">
+              {data.key}&nbsp;{data.down == 0 ? <IconArrowNarrowUp size={18} /> : <IconArrowNarrowDown size={18} />}&nbsp;{data.down || ''}
+            </div>
+            <div className="">x: {data.pos[0]} y:{data.pos[1]}</div>
           </div>
-        }
+        )
+      }
+      return (<div className="flex items-center">
+        {data.key}&nbsp;{data.down == 0 ? <IconArrowNarrowUp size={18} /> : <IconArrowNarrowDown size={18} />}&nbsp;{data.down || ''}
+      </div>)
+    })()
+
+    return (
+      <div className={`input ${i % 2 ? 'bg-[#491212]' : 'bg-[#360e0e]'} border-b-[1px], relative col box-border, px-1 py-2 capitalize`} data-ind={i}>
+        <div className="absolute border, right-[3px] top-[31%] " onClick={() => { setInputs(p => [...p.filter((e, ind) => ind != i)]) }} ><IconX size={18} /></div>
+        <div className="absolute border, -top-[0px] -left-[2px] w-[12%] h-full cursor-grab " onClick={(e) => e.stopPropagation()} onPointerDown={(e) => {
+          e.target.parentNode.style.opacity = 0.4;
+          window.prev = e.target.parentNode.dataset.ind;
+          let cont = document.querySelector('.input-container');
+          // cont.innerHTML += `<div class="input border" style="height: 40px; width: 100%; border: solid 1px white" ></div>`;
+          const onup = () => {
+            document.removeEventListener('pointerup', onup)
+            move_bar.current.style.display = 'none';
+            setInputs(p => {
+              let input = inputs[window.prev]
+              p.splice(window.prev, 1);
+              if(window.prev < window.ind) window.ind++
+              p.splice(window.ind, 0, input);
+              return [...p]
+            })
+          }
+          document.addEventListener('pointerup', onup);
+          [...document.querySelectorAll('.input')].forEach(e => e.addEventListener('pointerenter', e => {
+            window.ind = +e.target.dataset.ind;
+            move_bar.current.style.display = 'flex';
+            move_bar.current.style.top = `${e.target.getBoundingClientRect().top - 2}px`
+          }));
+        }} />
+        {main}
       </div>
     )
   }
 
   return (
-    <div className="full flex">
+    <div className="full flex ">
 
-      <div className="w-[25%] border-e-[1px] col ">
+      <div className="w-[25%] border-e-[1px] col  ">
+        <div ref={move_bar} className="fixed z-10 hidden w-[15.5%] h-1 bg-[#22b37b]"></div>
         <span className="center text-zinc-500">Inputs</span>
         <div className="center flex gap-1">
           <div className="">add</div>
@@ -179,7 +256,7 @@ function Create({ edit }) {
           }}>delay</div>
         </div>
         <hr className="mx-[17%] text-zinc-400 mb-1" />
-        <div ref={inputs_ref} className="grow h-1 overflow-x-hidden overflow-y-auto text-[14px] ">
+        <div ref={inputs_ref} className="input-container grow h-1 overflow-x-hidden overflow-y-auto text-[14px] relative ">
           {inputs.map((input, i) => <Input key={i} i={i} data={input} />)}
         </div>
       </div>
@@ -208,7 +285,13 @@ function Create({ edit }) {
             |
             <TypeCard type={'bind'} />
           </div>
-          <div className=" w-[45%] ms-[27.5%] aspect-[1.9] border-red-800 border-[2px] rounded-md flex center gap-2 cursor-pointer pen" onClick={() => setForm(p => ({ ...p, recording: !p.recording }))}>
+          <div className=" w-[45%] ms-[27.5%] aspect-[1.9] border-red-800 border-[2px] rounded-md flex center gap-2 cursor-pointer pen" onClick={() => {
+            key_track = {};
+            if (inputs.at(-1)?.down === null) setInputs(p => [...p].slice(0, -1))
+            recording = !recording
+            ipcFetch('record', { recording }, 1)
+            setForm(p => ({ ...p, recording }));
+          }}>
             {form.recording ?
               <div className="bg-red-800 center full">
                 Recording
@@ -223,7 +306,10 @@ function Create({ edit }) {
           </div>
           <div className="flex justify-center gap-4 w-[75%] ms-[12.5%] [&>*]:flex-[1_0_0%] ">
             <div className={`${styles.button} bg-neutral-600 h-[50px]`} onClick={() => states.setView(<Home />)} >Cancel</div>
-            <div className={`${styles.button} bg-neutral-600 h-[50px]`} onClick={() => console.log({ ...form, inputs })} >Log</div>
+            <div className={`${styles.button} bg-neutral-600 h-[50px]`} onClick={() => {
+              console.log({ ...form, inputs });
+              ipcFetch('test2', {})
+            }} >Log</div>
             <div className={`${styles.button} bg-teal-700 h-[50px]`} onClick={() => {
               delete form.recording;
               form.id ??= uid();
