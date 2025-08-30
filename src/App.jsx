@@ -46,8 +46,9 @@ function Home() {
 
   return (
     <div className="full col">
-      <div className="h-[7%] p-1 border-b-[1px] flex items-center">
+      <div className="h-[7%] p-1 border-b-[1px] flex gap-1 items-center">
         <div onClick={() => states.setView(<Create />)} className={`${styles.button} hover:bg-teal-600 h-full flex items-center w-[content] bg-teal-700`}> <IconPlus /> New Macro</div>
+        <div className="msg"></div>
         {/* <div onClick={() => ipcFetch('test').then(console.log)} className={`${styles.button}  h-full flex items-center w-[content] `}> <IconPlus /> Test</div> */}
       </div>
       <div className="grow h-1 w-full">

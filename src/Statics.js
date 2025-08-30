@@ -72,10 +72,11 @@ async function runCommand(s) {
   window.pyspawn?.kill && window.pyspawn.kill();
   window.pyspawn = 0;
   if (!window.command) {
-    window.command = new Command("py-spawn", ["py", "main.py"]);
-    // window.command = new Command("exe-spawn", ["prod"]);
+    // window.command = new Command("py-spawn", ["py", "main.py"]);
+    window.command = new Command("exe-spawn", ["prod"]);
 
     window.command.stdout.on("data", (line) => {
+      // if(document.querySelector('.msg')) document.querySelector('.msg').innerHTML = line;
       if (line[0] != "{") return console.log("[stout]", line);
       let data;
       try {
@@ -93,10 +94,12 @@ async function runCommand(s) {
     });
 
     window.command.stderr.on("data", (line) => {
+      // if(document.querySelector('.msg')) document.querySelector('.msg').innerHTML = line;
       console.error("[stderr]", line);
     });
 
     window.command.on("close", (data) => {
+      if(document.querySelector('.msg')) document.querySelector('.msg').innerHTML = 'closed'
       console.log("Process exited with code", data.code);
       window.pyspawn?.kill && window.pyspawn.kill();
       window.pyspawn = null;

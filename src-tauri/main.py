@@ -56,8 +56,8 @@ def keyTracker():
         ["keyTracker.exe"],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-        text=True,  # ensures stdout is str not bytes (Python 3.7+)
-        bufsize=1   # line-buffered
+        text=True, 
+        bufsize=1  
     )
     
     down_check = {
