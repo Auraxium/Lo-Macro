@@ -12,6 +12,7 @@ active = {}
 running = {}
 holding = {}
 watch_keys = {}
+up_watch = {}
 recording = False
 keyboard_recording = None
 mouse_recording = None
@@ -75,19 +76,21 @@ def keyTracker():
         spl = line.split(',')
         if len(spl[2]) == 1:
             continue
-        down = down_check.get(spl[1]) or False
-        if down and spl[0] in holding:
-            continue
         # log(line)
-        if down:
-            holding[spl[0]] = 1
-        else:
-            holding.pop(spl[0], None)
-            
+        down = down_check.get(spl[1]) or False
         key = int(spl[0])
-        if down and key in watch_keys:
-            for e in watch_keys[key]:
-                asyncio.run_coroutine_threadsafe(run(active[e]), _loop)
+        if down:
+            if key in holding:
+                continue
+            holding[key] = 1
+            if key in watch_keys:
+                for e in watch_keys[key]:
+                    asyncio.run_coroutine_threadsafe(run(active[e], key, down), _loop)
+        else:
+            holding.pop(key, None)
+            if key in up_watch:
+                for e in watch_keys[key]:
+                    asyncio.run_coroutine_threadsafe(run(active[e], key, down), _loop)
 threading.Thread(target=keyTracker, daemon=True).start()
 
 def keyDown(key):
@@ -138,13 +141,16 @@ async def toggle(mac):
             await asyncio.sleep(0)
     except asyncio.CancelledError:
         raise
-
+    
+async def binds(mac):
+    pass
+    
 async def run(mac):
     match mac['type']:
         case 'once':
             running[mac['id']] = asyncio.create_task(once(mac))
         case 'hold':
-            running[mac['id']] = asyncio.create_task(toggle(mac))
+            pass
         case 'toggle':
             if mac['id'] in running:
                 running[mac['id']].cancel()
