@@ -13,6 +13,7 @@ running = {}
 holding = {}
 watch_keys = {}
 up_watch = {}
+binds = {}
 recording = False
 keyboard_recording = None
 mouse_recording = None
@@ -74,23 +75,31 @@ def keyTracker():
         if not line:
             continue
         spl = line.split(',')
-        if len(spl[2]) == 1:
+        if len(spl[2]) == 1: #is robot
             continue
         # log(line)
+        
         down = down_check.get(spl[1]) or False
         key = int(spl[0])
+        
         if down:
             if key in holding:
                 continue
             holding[key] = 1
+            if key in binds:
+                for e in binds[key]:
+                    pydirectinput.keyDown(e)
             if key in watch_keys:
                 for e in watch_keys[key]:
-                    asyncio.run_coroutine_threadsafe(run(active[e], key, down), _loop)
+                    asyncio.run_coroutine_threadsafe(run(active[e]), _loop)
         else:
             holding.pop(key, None)
+            if key in binds:
+                for e in binds[key]:
+                    pydirectinput.keyUp(e)
             if key in up_watch:
                 for e in watch_keys[key]:
-                    asyncio.run_coroutine_threadsafe(run(active[e], key, down), _loop)
+                    asyncio.run_coroutine_threadsafe(run(active[e]), _loop)
 threading.Thread(target=keyTracker, daemon=True).start()
 
 def keyDown(key):
@@ -142,9 +151,6 @@ async def toggle(mac):
     except asyncio.CancelledError:
         raise
     
-async def binds(mac):
-    pass
-    
 async def run(mac):
     match mac['type']:
         case 'once':
@@ -154,12 +160,24 @@ async def run(mac):
         case 'toggle':
             if mac['id'] in running:
                 running[mac['id']].cancel()
-                del running[mac['id']]
+                running.pop(mac['id'], None)
                 return
             running[mac['id']] = asyncio.create_task(toggle(mac))
             
-def activate(mac): 
+def activate(mac):
     id = mac.get('id')
+    if mac.get('type') == 'bind':
+        if id in active:
+            active.pop(id, None)
+            for e in mac.get('binds'):
+                for r in e.get('binds'):
+                    binds[e['keycode']].remove(r)
+        else:
+            active[id] = 1
+            for e in mac.get('binds'):
+                binds.setdefault(e['keycode'], set()).update(e['binds'])
+        log(json.dumps({'event': 'active', 'data': {'active': list(active.keys()), 'running': list(running.keys())}}))
+        return 
     activate = mac.get('activateCode')
     if id in active:
         active.pop(id, None)
@@ -178,10 +196,16 @@ def clear():
     # keyboard.unhook_all()
     global active 
     global running 
-    global downs 
+    global holding 
+    global watch_keys 
+    global up_watch 
+    global binds 
     active = {}
     running = {}
-    downs = {}
+    holding = {}
+    watch_keys = {}
+    up_watch = {}
+    binds = {}
     log(json.dumps({'event': 'active', 'data': {'active': [], 'running': []}}))
 
 keyboard.add_hotkey('home', clear)

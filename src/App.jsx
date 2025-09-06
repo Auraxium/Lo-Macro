@@ -51,7 +51,7 @@ function Home() {
         <div className="msg"></div>
         {/* <div onClick={() => ipcFetch('test').then(console.log)} className={`${styles.button}  h-full flex items-center w-[content] `}> <IconPlus /> Test</div> */}
       </div>
-      <div className="grow h-1 w-full">
+      <div className="grow h-1 w-full overflow-y-auto">
         {Object.values(macros).map(mac => <Macro key={mac.id} mac={mac} />)}
       </div>
     </div>
@@ -82,8 +82,9 @@ let bad_case = {
 let down_map = new Set(['0', '2']);
 
 function Create({ edit }) {
-  let [form, setForm] = useState(edit && {...edit} || { type: 'once' });
+  let [form, setForm] = useState(edit && { ...edit } || { type: 'once' });
   let [inputs, setInputs] = useState(form.inputs || []);
+  let [binds, setBinds] = useState(form.binds || []);
   let inputs_ref = useRef();
   let move_bar = useRef();
   let refresh = () => setInputs([...inputs]);
@@ -171,6 +172,33 @@ function Create({ edit }) {
     </div>
   )
 
+  const Editable = ({ cb, defaultEle, defaultVal, i, format, onchange, ondown, className, input_classname, default_classname }) => {
+    let [editing, setEditing] = useState(0);
+    let inp = useRef()
+
+    useEffect(() => {
+      if (inp.current?.focus) inp.current.focus()
+
+    })
+
+    return (
+      <div className={` ${className}`}>
+        {editing ?
+          <input ref={inp} className={`w-8 h-8 border-[1px] border-amber-300 ${input_classname}`}
+            type="text"
+            defaultValue={defaultVal}
+            onKeyDown={e => { ondown && ondown(e.target.value, e); e.key == 'Enter' && e.target.blur() }}
+            onKeyUp={e => onchange && onchange(e.target.value, e)}
+            onBlur={(e) => { cb && cb(e.target.value); setEditing(0) }}
+            onFocus={e => e.target.select()}
+          />
+          :
+          <div className={` ${default_classname}`} onClick={() => setEditing(1)}>{defaultEle || defaultVal || 'ndll'}</div>
+        }
+      </div>
+    )
+  }
+
   const Input = ({ data, i }) => {
     let el = inputs[i];
 
@@ -195,6 +223,24 @@ function Create({ edit }) {
           }
         </div>
       )
+      if (form.type == 'bind') {
+        return (
+          <div className="col center h-12 ">
+            <Editable defaultVal={data.key} cb={(val) => { setBinds([...binds]) }} ondown={(val, e) => {
+              if (val == 'Enter') return; //but cant make val enter
+              e.preventDefault();
+              e.key = (bad_case[e.keyCode]?.[e.location] || ((e.location) && e.code.toLowerCase()) || e.key).toLowerCase();
+              e.target.value = e.key;
+              binds[i].key = e.key;
+              binds[i].keycode = e.keyCode;
+            }} />
+            <Editable defaultVal={data.binds.join("")} cb={(val) => {
+              binds[i].binds = val.toLowerCase().split('').filter(Boolean);
+              setBinds([...binds])
+            }} />
+          </div>
+        )
+      }
       if ('mouse' in data) {
         return (
           <div className="col w-full justify-center ">
@@ -212,7 +258,7 @@ function Create({ edit }) {
 
     return (
       <div className={`input ${i % 2 ? 'bg-[#491212]' : 'bg-[#360e0e]'} border-b-[1px], relative col box-border, px-1 py-2 capitalize`} data-ind={i}>
-        <div className="absolute border, right-[3px] top-[31%] " onClick={() => { setInputs(p => [...p.filter((e, ind) => ind != i)]) }} ><IconX size={18} /></div>
+        <div className="absolute border, right-[3px] top-[31%] " onClick={() => form.type == 'bind' ? setBinds(p => p.filter((_, ind) => ind != i)) : setInputs(p => [...p.filter((e, ind) => ind != i)]) } ><IconX size={18} /></div>
         <div className="absolute border, -top-[0px] -left-[2px] w-[12%] h-full cursor-grab " onClick={(e) => e.stopPropagation()} onPointerDown={(e) => {
           e.target.parentNode.style.opacity = 0.4;
           window.prev = e.target.parentNode.dataset.ind;
@@ -224,7 +270,7 @@ function Create({ edit }) {
             setInputs(p => {
               let input = inputs[window.prev]
               p.splice(window.prev, 1);
-              if(window.prev < window.ind) window.ind++
+              if (window.prev < window.ind) window.ind++
               p.splice(window.ind, 0, input);
               return [...p]
             })
@@ -243,12 +289,15 @@ function Create({ edit }) {
 
   return (
     <div className="full flex ">
-
       <div className="w-[25%] border-e-[1px] col  ">
         <div ref={move_bar} className="fixed z-10 hidden w-[15.5%] h-1 bg-[#22b37b]"></div>
         <span className="center text-zinc-500">Inputs</span>
         <div className="center flex gap-1">
-          <div className="">add</div>
+          <div className="" onClick={e => {
+            form.recording = 0;
+            form.type == 'bind' ? binds.push({ key: '', binds: [] }) : inputs.push({})
+            setBinds([...binds]);
+          }}>add</div>
           |
           <div className="delay" onClick={() => {
             inputs.push({ delay: 0, edit: 1 });
@@ -258,7 +307,7 @@ function Create({ edit }) {
         </div>
         <hr className="mx-[17%] text-zinc-400 mb-1" />
         <div ref={inputs_ref} className="input-container grow h-1 overflow-x-hidden overflow-y-auto text-[14px] relative ">
-          {inputs.map((input, i) => <Input key={i} i={i} data={input} />)}
+          {form.type == 'bind' ? binds.map((bind, i) => <Input key={i} i={i} data={bind} />) : inputs.map((input, i) => <Input key={i} i={i} data={input} />)}
         </div>
       </div>
 
@@ -315,6 +364,7 @@ function Create({ edit }) {
               delete form.recording;
               form.id ??= uid();
               form.inputs = inputs;
+              form.binds = binds;
               form.version = version;
               macros[form.id] = { ...form };
               states.setView()
