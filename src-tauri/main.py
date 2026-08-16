@@ -170,12 +170,21 @@ def activate(mac):
         if id in active:
             active.pop(id, None)
             for e in mac.get('binds'):
-                for r in e.get('binds'):
-                    binds[e['keycode']].remove(r)
+                key = e['keycode']
+                bind = e['bind']
+                binds[key].remove(bind)
+            # if binds[key].size == 0:
+                # delete binds[key]
+                    
         else:
             active[id] = 1
             for e in mac.get('binds'):
-                binds.setdefault(e['keycode'], set()).update(e['binds'])
+                key = e['keycode']
+                bind = e['bind']
+                if key not in binds:
+                    binds.setdefault(key, set())
+                binds[key].add(bind)
+        # log(str(binds))
         log(json.dumps({'event': 'active', 'data': {'active': list(active.keys()), 'running': list(running.keys())}}))
         return 
     activate = mac.get('activateCode')
@@ -186,6 +195,7 @@ def activate(mac):
     else: 
         active[id] = mac
         watch_keys.setdefault(activate, set()).add(id)
+    # log(watch_keys)
         
         # keyboard.on_press_key(mac['activate'], lambda e: asyncio.run_coroutine_threadsafe(run(mac), _loop))
     log(json.dumps({'event': 'active', 'data': {'active': list(active.keys()), 'running': list(running.keys())}}))

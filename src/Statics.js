@@ -72,8 +72,8 @@ async function runCommand(s) {
   window.pyspawn?.kill && window.pyspawn.kill();
   window.pyspawn = 0;
   if (!window.command) {
-    // window.command = new Command("py-spawn", ["py", "main.py"]);
-    window.command = new Command("exe-spawn", ["prod"]);
+    // window.command = new Command("py-spawn", ["py", "main.py"]); //dev
+    window.command = new Command("exe-spawn", ["prod"]); //prod
 
     window.command.stdout.on("data", (line) => {
       // if(document.querySelector('.msg')) document.querySelector('.msg').innerHTML = line;

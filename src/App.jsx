@@ -51,8 +51,10 @@ function Home() {
         <div className="msg"></div>
         {/* <div onClick={() => ipcFetch('test').then(console.log)} className={`${styles.button}  h-full flex items-center w-[content] `}> <IconPlus /> Test</div> */}
       </div>
-      <div className="grow h-1 w-full overflow-y-auto">
-        {Object.values(macros).map(mac => <Macro key={mac.id} mac={mac} />)}
+      <div className="overflow-y-auto">
+        <div className="flex flex-col-reverse">
+          {Object.values(macros).map(mac => <Macro key={mac.id} mac={mac} />)}
+        </div>
       </div>
     </div>
   )
@@ -226,18 +228,28 @@ function Create({ edit }) {
       if (form.type == 'bind') {
         return (
           <div className="col center h-12 ">
-            <Editable defaultVal={data.key} cb={(val) => { setBinds([...binds]) }} ondown={(val, e) => {
-              if (val == 'Enter') return; //but cant make val enter
-              e.preventDefault();
-              e.key = (bad_case[e.keyCode]?.[e.location] || ((e.location) && e.code.toLowerCase()) || e.key).toLowerCase();
-              e.target.value = e.key;
-              binds[i].key = e.key;
-              binds[i].keycode = e.keyCode;
-            }} />
-            <Editable defaultVal={data.binds.join("")} cb={(val) => {
-              binds[i].binds = val.toLowerCase().split('').filter(Boolean);
-              setBinds([...binds])
-            }} />
+            <div className="flex gap-2">
+              <span>key:</span>
+              <Editable defaultVal={data.key} cb={(val) => { setBinds([...binds]) }} ondown={(val, e) => {
+                if (val == 'Enter') return; //but cant make val enter
+                e.preventDefault();
+                e.key = (bad_case[e.keyCode]?.[e.location] || ((e.location) && e.code.toLowerCase()) || e.key).toLowerCase();
+                e.target.value = e.key;
+                binds[i].key = e.key;
+                binds[i].keycode = e.keyCode;
+              }} />
+            </div>
+            <div className="flex gap-2">
+              <span>bind:</span>
+              <Editable defaultVal={data.bind} cb={(val) => { setBinds([...binds]) }} ondown={(val, e) => {
+                if (val == 'Enter') return; //but cant make val enter
+                e.preventDefault();
+                e.key = (bad_case[e.keyCode]?.[e.location] || ((e.location) && e.code.toLowerCase()) || e.key).toLowerCase();
+                e.target.value = e.key;
+                binds[i].bind = e.key;
+                binds[i].bindcode = e.keyCode;
+              }} />
+            </div>
           </div>
         )
       }
@@ -258,7 +270,7 @@ function Create({ edit }) {
 
     return (
       <div className={`input ${i % 2 ? 'bg-[#491212]' : 'bg-[#360e0e]'} border-b-[1px], relative col box-border, px-1 py-2 capitalize`} data-ind={i}>
-        <div className="absolute border, right-[3px] top-[31%] " onClick={() => form.type == 'bind' ? setBinds(p => p.filter((_, ind) => ind != i)) : setInputs(p => [...p.filter((e, ind) => ind != i)]) } ><IconX size={18} /></div>
+        <div className="absolute border, right-[3px] top-[31%] " onClick={() => form.type == 'bind' ? setBinds(p => p.filter((_, ind) => ind != i)) : setInputs(p => [...p.filter((e, ind) => ind != i)])} ><IconX size={18} /></div>
         <div className="absolute border, -top-[0px] -left-[2px] w-[12%] h-full cursor-grab " onClick={(e) => e.stopPropagation()} onPointerDown={(e) => {
           e.target.parentNode.style.opacity = 0.4;
           window.prev = e.target.parentNode.dataset.ind;
@@ -295,7 +307,7 @@ function Create({ edit }) {
         <div className="center flex gap-1">
           <div className="" onClick={e => {
             form.recording = 0;
-            form.type == 'bind' ? binds.push({ key: '', binds: [] }) : inputs.push({})
+            form.type == 'bind' ? binds.push({ key: '', bind: '' }) : inputs.push({})
             setBinds([...binds]);
           }}>add</div>
           |
