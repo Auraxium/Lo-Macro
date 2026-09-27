@@ -89,8 +89,8 @@ def keyTracker():
             if key in binds:
                 for e in binds[key]:
                     pydirectinput.keyDown(e)
-            if key in watch_keys:
-                for e in watch_keys[key]:
+            if key in watch_keys: 
+                for e in watch_keys[key]: #watch_keys[] is a set of macro ids
                     asyncio.run_coroutine_threadsafe(run(active[e]), _loop)
         else:
             holding.pop(key, None)
@@ -114,10 +114,11 @@ async def keyTap(key):
         return
     log(key['key'])
     if 'mouse' in key:
-        x = int(key['pos'][0])+random.randint(-10,10)
-        y = int(key['pos'][1])+random.randint(-10,10)
-        mouse.move(x,y,absolute=True,duration=.1+(random.randint(0,5)/100))
-        await asyncio.sleep(100/1000)
+        if 'pos' in key:
+            x = int(key['pos'][0])+random.randint(-10,10)
+            y = int(key['pos'][1])+random.randint(-10,10)
+            mouse.move(x,y,absolute=True,duration=.1+(random.randint(0,5)/100))
+            await asyncio.sleep(100/1000)
         mouse.press(button=key['key'])
         await asyncio.sleep(key['down']/1000)
         mouse.release(button=key['key'])
@@ -126,8 +127,10 @@ async def keyTap(key):
     await asyncio.sleep(key['down']/1000)
     pydirectinput.keyUp(key['key'])
     
-async def loop_inputs(inputs):
+async def loop_inputs(inputs, active=None):
     for x in inputs:
+        if active and active not in holding:
+            break
         await keyTap(x)
         await asyncio.sleep(0.05)
 
@@ -136,10 +139,11 @@ async def once(mac):
         
 async def hold(mac):
     try:
-        while mac['activate'] in holding:
-            await loop_inputs(mac['inputs'])
-            await asyncio.sleep(0)
+        while mac['activateCode'] in holding:
+            await loop_inputs(mac['inputs'], mac['activateCode'])
+            await asyncio.sleep(0.05)
     except asyncio.CancelledError:
+        log("err in hold ")
         raise
     pass
 
@@ -156,7 +160,7 @@ async def run(mac):
         case 'once':
             running[mac['id']] = asyncio.create_task(once(mac))
         case 'hold':
-            pass
+            running[mac['id']] = asyncio.create_task(hold(mac))
         case 'toggle':
             if mac['id'] in running:
                 running[mac['id']].cancel()
@@ -236,7 +240,7 @@ try:
         if line[0] != "{":
             log(line)
             continue
-        # log(line)
+        log(line)
         query = json.loads(line)
         if query["port"] == "exit":
             break

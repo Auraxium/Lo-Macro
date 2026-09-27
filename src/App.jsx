@@ -139,7 +139,8 @@ function Create({ edit }) {
             pos: p.length
           }
           let js = { down: null, key: key, keycode: code }
-          if (mouse) js = { ...js, mouse: 1, pos: spl[3].split('|') }
+          // if (mouse) js = { ...js, mouse: 1, pos: spl[3].split('|') }
+          if (mouse) js = { ...js, mouse: 1 }
           return [...p, js];
         });
       } else {
@@ -259,7 +260,7 @@ function Create({ edit }) {
             <div className="flex">
               {data.key}&nbsp;{data.down == 0 ? <IconArrowNarrowUp size={18} /> : <IconArrowNarrowDown size={18} />}&nbsp;{data.down || ''}
             </div>
-            <div className="">x: {data.pos[0]} y:{data.pos[1]}</div>
+            {data.pos ? <div className="">x: {data.pos[0]} y:{data.pos[1]}</div> : <></>}
           </div>
         )
       }
